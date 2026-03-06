@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project 1 — HTTP Server</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; padding: 40px; }
+    h1 { color: #38bdf8; margin-bottom: 10px; }
+    .subtitle { color: #94a3b8; margin-bottom: 30px; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    .card h2 { color: #22d3ee; margin-bottom: 12px; font-size: 18px; }
+    .card p { color: #94a3b8; margin-bottom: 12px; line-height: 1.6; }
+    a { color: #38bdf8; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .routes { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+    .route-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; transition: border-color 0.2s; }
+    .route-card:hover { border-color: #38bdf8; }
+    .method { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-right: 8px; }
+    .get { background: #065f46; color: #6ee7b7; }
+    .route-path { font-family: monospace; font-size: 16px; color: #f1f5f9; }
+    .route-desc { color: #94a3b8; margin-top: 8px; font-size: 14px; }
+    .try-btn { display: inline-block; margin-top: 12px; padding: 6px 16px; background: #0ea5e9; color: white; border-radius: 6px; font-size: 13px; transition: background 0.2s; }
+    .try-btn:hover { background: #0284c7; text-decoration: none; }
+    .learn-section { margin-top: 40px; }
+    .learn-section h2 { color: #22d3ee; margin-bottom: 16px; }
+    .learn-item { background: #1e293b; border-left: 3px solid #38bdf8; padding: 16px 20px; margin-bottom: 12px; border-radius: 0 8px 8px 0; }
+    .learn-item h3 { color: #f1f5f9; font-size: 15px; margin-bottom: 6px; }
+    .learn-item p { color: #94a3b8; font-size: 14px; line-height: 1.5; }
+    code { background: #334155; padding: 2px 6px; border-radius: 4px; font-size: 13px; color: #fbbf24; }
+    .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #334155; color: #64748b; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>🛡️ Project 1: HTTP Server</h1>
+  <p class="subtitle">Learn how HTTP works by exploring request/response, headers, and status codes.</p>
+
+  <div class="card">
+    <h2>📡 What is HTTP?</h2>
+    <p>
+      HTTP (HyperText Transfer Protocol) is the foundation of web communication. Every time your browser loads a page,
+      it sends an <strong>HTTP Request</strong> to a server, and the server sends back an <strong>HTTP Response</strong>.
+      This server lets you see that in action.
+    </p>
+    <p>
+      Open <strong>DevTools → Network tab</strong> (F12) and click any link below. Watch the request and response appear in real time!
+    </p>
+  </div>
+
+  <h2 style="color: #22d3ee; margin-bottom: 16px;">🔗 Available Routes</h2>
+  <div class="routes">
+
+    <div class="route-card">
+      <span class="method get">GET</span>
+      <span class="route-path">/</span>
+      <p class="route-desc">This homepage. The server returned this HTML file as a response.</p>
+      <a href="/" class="try-btn">You're here!</a>
+    </div>
+
+    <div class="route-card">
+      <span class="method get">GET</span>
+      <span class="route-path">/login</span>
+      <p class="route-desc">A simple login page. Watch the Network tab to see the GET request.</p>
+      <a href="/login" class="try-btn">Try it →</a>
+    </div>
+
+    <div class="route-card">
+      <span class="method get">GET</span>
+      <span class="route-path">/dashboard</span>
+      <p class="route-desc">A protected dashboard page. Normally needs authentication (we'll add that later).</p>
+      <a href="/dashboard" class="try-btn">Try it →</a>
+    </div>
+
+    <div class="route-card">
+      <span class="method get">GET</span>
+      <span class="route-path">/api/data</span>
+      <p class="route-desc">Returns JSON data. Notice the <code>Content-Type: application/json</code> header in response.</p>
+      <a href="/api/data" class="try-btn">Try it →</a>
+    </div>
+
+    <div class="route-card">
+      <span class="method get">GET</span>
+      <span class="route-path">/headers</span>
+      <p class="route-desc">Echoes back ALL your request headers as JSON. See what your browser sends automatically!</p>
+      <a href="/headers" class="try-btn">Try it →</a>
+    </div>
+
+    <div class="route-card">
+      <span class="method get">GET</span>
+      <span class="route-path">/status/:code</span>
+      <p class="route-desc">Returns any HTTP status code. Try 200, 301, 404, 500, etc.</p>
+      <a href="/status/404" class="try-btn">Try 404 →</a>
+    </div>
+
+  </div>
+
+  <div class="learn-section">
+    <h2>🧠 What to Observe (Open DevTools → Network Tab!)</h2>
+
+    <div class="learn-item">
+      <h3>1. Request Method</h3>
+      <p>Every request has a method: <code>GET</code> (fetch data), <code>POST</code> (send data), <code>PUT</code> (update), <code>DELETE</code> (remove). Clicking links sends GET requests.</p>
+    </div>
+
+    <div class="learn-item">
+      <h3>2. Request Headers</h3>
+      <p>Your browser automatically sends headers like <code>User-Agent</code> (browser info), <code>Accept</code> (what formats you accept), <code>Cookie</code> (stored cookies). Visit <a href="/headers">/headers</a> to see them all!</p>
+    </div>
+
+    <div class="learn-item">
+      <h3>3. Response Headers</h3>
+      <p>The server sends back headers too: <code>Content-Type</code> (what kind of data), <code>Content-Length</code> (how big), and security headers (we'll add these in later projects).</p>
+    </div>
+
+    <div class="learn-item">
+      <h3>4. Status Codes</h3>
+      <p><code>200</code> = OK, <code>301</code> = Redirect, <code>404</code> = Not Found, <code>500</code> = Server Error. Try <a href="/status/200">/status/200</a> vs <a href="/status/500">/status/500</a> and watch the Network tab.</p>
+    </div>
+
+    <div class="learn-item">
+      <h3>5. Response Body</h3>
+      <p>The response body is the actual content — HTML for pages, JSON for APIs. Compare <a href="/">/</a> (HTML) vs <a href="/api/data">/api/data</a> (JSON).</p>
+    </div>
+
+    <div class="learn-item">
+      <h3>6. Server Console</h3>
+      <p>Check your terminal — every request is logged with its method, URL, status code, and all headers. This is your server-side view!</p>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>🛡️ Browser Security Roadmap — Project 1 of 15 | Next: <strong>Project 2: Same-Origin Policy Demo</strong></p>
+  </div>
+</body>
+</html>

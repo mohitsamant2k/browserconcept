@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Project 1</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; padding: 40px; }
+    h1 { color: #38bdf8; margin-bottom: 10px; }
+    .subtitle { color: #94a3b8; margin-bottom: 30px; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    .card h2 { color: #22d3ee; margin-bottom: 12px; font-size: 18px; }
+    .card p { color: #94a3b8; line-height: 1.6; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+    .stat { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center; }
+    .stat-value { font-size: 32px; font-weight: bold; color: #38bdf8; }
+    .stat-label { color: #94a3b8; font-size: 13px; margin-top: 4px; }
+    code { background: #334155; padding: 2px 6px; border-radius: 4px; font-size: 13px; color: #fbbf24; }
+    a { color: #38bdf8; text-decoration: none; }
+    .back { display: inline-block; margin-bottom: 16px; color: #64748b; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <a href="/" class="back">← Back to Home</a>
+  <h1>📊 Dashboard</h1>
+  <p class="subtitle">This is a protected page. In later projects, you'll need to be logged in to see this.</p>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-value">0</div>
+      <div class="stat-label">XSS Attacks Blocked</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">0</div>
+      <div class="stat-label">CSRF Tokens Generated</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">F</div>
+      <div class="stat-label">Security Header Grade</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🧠 What to Observe</h2>
+    <p>
+      Right now, anyone can access this page — no authentication required! That's a security problem.<br><br>
+      In <strong>Project 9</strong>, you'll build session-based auth so only logged-in users can see this page.<br>
+      In <strong>Project 10</strong>, you'll add OAuth (GitHub login) as another way to protect it.<br><br>
+      For now, notice in the Network tab that this is just a simple <code>GET /dashboard</code> request with a <code>200 OK</code> response.
+      There's no <code>Set-Cookie</code> header, no <code>Authorization</code> header — it's completely open.
+    </p>
+  </div>
+</body>
+</html>

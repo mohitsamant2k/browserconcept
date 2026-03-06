@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — Project 1</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    .login-box { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 40px; width: 100%; max-width: 400px; }
+    h1 { color: #38bdf8; margin-bottom: 8px; font-size: 24px; }
+    .subtitle { color: #94a3b8; margin-bottom: 24px; font-size: 14px; }
+    label { display: block; color: #94a3b8; font-size: 13px; margin-bottom: 6px; margin-top: 16px; }
+    input { width: 100%; padding: 10px 14px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: #f1f5f9; font-size: 14px; outline: none; }
+    input:focus { border-color: #38bdf8; }
+    button { width: 100%; margin-top: 24px; padding: 12px; background: #0ea5e9; color: #fff; border: none; border-radius: 8px; font-size: 15px; cursor: pointer; transition: background 0.2s; }
+    button:hover { background: #0284c7; }
+    .info { margin-top: 20px; padding: 14px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; }
+    .info h3 { color: #fbbf24; font-size: 13px; margin-bottom: 6px; }
+    .info p { color: #94a3b8; font-size: 12px; line-height: 1.5; }
+    code { background: #334155; padding: 1px 5px; border-radius: 3px; font-size: 12px; color: #fbbf24; }
+    a { color: #38bdf8; text-decoration: none; }
+    .back { display: inline-block; margin-bottom: 16px; color: #64748b; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <a href="/" class="back">← Back to Home</a>
+    <h1>🔐 Login</h1>
+    <p class="subtitle">This form sends a POST request. Watch the Network tab!</p>
+
+    <form method="POST" action="/login">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" placeholder="Enter username" required>
+
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" placeholder="Enter password" required>
+
+      <button type="submit">Login</button>
+    </form>
+
+    <div class="info">
+      <h3>🧠 What to Observe</h3>
+      <p>
+        1. Open <strong>DevTools → Network tab</strong> before clicking Login.<br>
+        2. Submit the form and notice the <code>POST</code> request (not GET!).<br>
+        3. Click on the request → look at <strong>Payload</strong> — your username and password are sent in the request body.<br>
+        4. Notice: on plain HTTP, this data is sent in <strong>cleartext</strong>. That's why HTTPS matters (Project 12)!
+      </p>
+    </div>
+  </div>
+</body>
+</html>
