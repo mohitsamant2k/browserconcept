@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Server B — Different Origin</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: #e2e8f0; padding: 40px; }
+    h1 { color: #e94560; margin-bottom: 8px; }
+    .subtitle { color: #94a3b8; margin-bottom: 30px; }
+    .card { background: #16213e; border: 1px solid #334155; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    .card h2 { color: #e94560; margin-bottom: 12px; font-size: 18px; }
+    .card p { color: #94a3b8; line-height: 1.6; }
+    code { background: #334155; padding: 2px 6px; border-radius: 4px; font-size: 13px; color: #fbbf24; }
+    a { color: #e94560; }
+  </style>
+</head>
+<body>
+  <h1>🔴 Server B (port 4000)</h1>
+  <p class="subtitle">This is a different origin. Go to <a href="http://localhost:3000">http://localhost:3000</a> to run the experiments.</p>
+
+  <div class="card">
+    <h2>📡 This server exists to demonstrate SOP</h2>
+    <p>
+      Server B runs on <code>http://localhost:4000</code> — a different origin from Server A (<code>http://localhost:3000</code>).<br><br>
+      The experiments on Server A will try to access this server's data, DOM, and cookies.
+      The browser will <strong>block</strong> most of these attempts because of the Same-Origin Policy.<br><br>
+      Go to <a href="http://localhost:3000">http://localhost:3000</a> to start the experiments.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>🔗 Server B Endpoints</h2>
+    <p>
+      <code>GET /api/secret-data</code> — Returns secret JSON data<br>
+      <code>GET /set-cookie</code> — Sets a cookie on this origin<br>
+      <code>GET /check-cookies</code> — Shows all cookies visible on this origin<br>
+      <code>GET /iframe-page</code> — A page loaded in iframe on Server A<br>
+      <code>GET /postmessage-page</code> — A page that listens for postMessage
+    </p>
+  </div>
+
+  <div class="card" style="border-color: #fbbf24;">
+    <h2 style="color: #fbbf24;">🍪 Cookie Check — What can Server B see?</h2>
+    <p>
+      <code>document.cookie</code> on this page (<code>localhost:4000</code>):
+    </p>
+    <div id="cookie-display" style="background: #0f172a; border: 2px solid #fbbf24; border-radius: 8px; padding: 16px; margin: 12px 0; font-family: monospace; font-size: 14px; color: #fbbf24; min-height: 40px;"></div>
+    <p>
+      🔥 <strong style="color: #f87171;">If you set a cookie on Server A (:3000), it shows up here too!</strong><br>
+      Cookies are scoped by <strong>domain</strong> (localhost), NOT by <strong>origin</strong> (localhost:port).<br>
+      This is different from SOP, which treats different ports as different origins.
+    </p>
+  </div>
+
+  <script>
+    const display = document.getElementById('cookie-display');
+    display.textContent = document.cookie || '(no cookies yet — set a cookie on Server A first, then refresh this page!)';
+  </script>
+</body>
+</html>

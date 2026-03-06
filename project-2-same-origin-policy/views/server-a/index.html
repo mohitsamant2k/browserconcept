@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project 2 — Same-Origin Policy Demo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; padding: 40px; }
+    h1 { color: #38bdf8; margin-bottom: 8px; }
+    .subtitle { color: #94a3b8; margin-bottom: 30px; }
+    
+    .origin-bar { display: flex; gap: 16px; margin-bottom: 30px; }
+    .origin-badge { padding: 8px 16px; border-radius: 8px; font-family: monospace; font-size: 14px; }
+    .origin-a { background: #064e3b; color: #6ee7b7; border: 1px solid #059669; }
+    .origin-b { background: #4c1d2e; color: #fca5a5; border: 1px solid #e94560; }
+    
+    .experiment { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    .experiment h2 { font-size: 18px; margin-bottom: 8px; }
+    .experiment p { color: #94a3b8; margin-bottom: 16px; line-height: 1.6; font-size: 14px; }
+    
+    .tag-blocked { color: #ef4444; font-weight: bold; }
+    .tag-allowed { color: #22c55e; font-weight: bold; }
+    
+    button { padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; margin-right: 8px; margin-bottom: 8px; transition: all 0.2s; }
+    .btn-test { background: #0ea5e9; color: white; }
+    .btn-test:hover { background: #0284c7; }
+    .btn-attack { background: #ef4444; color: white; }
+    .btn-attack:hover { background: #dc2626; }
+    .btn-safe { background: #22c55e; color: white; }
+    .btn-safe:hover { background: #16a34a; }
+    
+    .result { margin-top: 12px; padding: 14px; border-radius: 8px; font-family: monospace; font-size: 13px; white-space: pre-wrap; word-break: break-word; display: none; }
+    .result-success { background: #064e3b; border: 1px solid #059669; color: #6ee7b7; }
+    .result-error { background: #4c1d2e; border: 1px solid #ef4444; color: #fca5a5; }
+    .result-info { background: #1e293b; border: 1px solid #38bdf8; color: #93c5fd; }
+    
+    .concept-box { background: #0f172a; border-left: 3px solid #fbbf24; padding: 16px 20px; margin: 16px 0; border-radius: 0 8px 8px 0; }
+    .concept-box h3 { color: #fbbf24; font-size: 14px; margin-bottom: 6px; }
+    .concept-box p { color: #94a3b8; font-size: 13px; line-height: 1.5; }
+    
+    code { background: #334155; padding: 2px 6px; border-radius: 4px; font-size: 13px; color: #fbbf24; }
+    a { color: #38bdf8; text-decoration: none; }
+    
+    iframe { border: 2px solid #e94560; border-radius: 8px; margin-top: 12px; }
+    
+    .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #334155; color: #64748b; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>🛡️ Project 2: Same-Origin Policy</h1>
+  <p class="subtitle">See the browser block cross-origin requests in real time. Open DevTools Console (F12)!</p>
+
+  <div class="origin-bar">
+    <div class="origin-badge origin-a">🟢 Server A — http://localhost:3000 (You are here)</div>
+    <div class="origin-badge origin-b">🔴 Server B — http://localhost:4000 (Different origin)</div>
+  </div>
+
+  <div class="concept-box">
+    <h3>🧠 What is Same-Origin Policy (SOP)?</h3>
+    <p>
+      The browser blocks JavaScript on one origin from reading data from a different origin.<br>
+      An <strong>origin</strong> = <code>scheme</code> + <code>host</code> + <code>port</code><br><br>
+      <code>http://localhost:3000</code> and <code>http://localhost:4000</code> are <strong>different origins</strong> (different port).<br>
+      So JavaScript on Server A <strong>cannot</strong> read responses from Server B.
+    </p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- EXPERIMENT 1: Same-Origin Fetch (works) -->
+  <!-- ============================================================ -->
+  <div class="experiment">
+    <h2>✅ Experiment 1: Same-Origin Fetch <span class="tag-allowed">(ALLOWED)</span></h2>
+    <p>
+      Fetch data from <code>localhost:3000/api/same-origin-data</code> — same origin as this page.
+      This will <strong>always work</strong> because it's the same origin.
+    </p>
+    <button class="btn-test" onclick="testSameOrigin()">Run Experiment →</button>
+    <div id="result-1" class="result"></div>
+
+    <div class="concept-box">
+      <h3>💡 Why does this work?</h3>
+      <p>The request goes from <code>localhost:3000</code> → <code>localhost:3000</code>. Same scheme, same host, same port = same origin. No restrictions.</p>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- EXPERIMENT 2: Cross-Origin Fetch (blocked) -->
+  <!-- ============================================================ -->
+  <div class="experiment">
+    <h2>❌ Experiment 2: Cross-Origin Fetch <span class="tag-blocked">(BLOCKED)</span></h2>
+    <p>
+      Fetch data from <code>localhost:4000/api/secret-data</code> — different origin!
+      The browser will <strong>block</strong> JavaScript from reading the response.
+    </p>
+    <button class="btn-attack" onclick="testCrossOriginFetch()">Run Experiment →</button>
+    <div id="result-2" class="result"></div>
+
+    <div class="concept-box">
+      <h3>💡 What happened?</h3>
+      <p>
+        The request <strong>was actually sent</strong> to Server B (check your terminal!). Server B <strong>did respond</strong>.<br>
+        But the browser <strong>refused to give the response to JavaScript</strong> because there's no <code>Access-Control-Allow-Origin</code> header.<br>
+        This is SOP in action — the <strong>browser</strong> enforces it, not the server.
+      </p>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- EXPERIMENT 3: Cross-Origin iframe DOM access (blocked) -->
+  <!-- ============================================================ -->
+  <div class="experiment">
+    <h2>❌ Experiment 3: Read iframe DOM from Different Origin <span class="tag-blocked">(BLOCKED)</span></h2>
+    <p>
+      Load Server B's page in an iframe, then try to read its DOM content with JavaScript.
+      The browser will <strong>block DOM access</strong> across origins.
+    </p>
+    <button class="btn-attack" onclick="testIframeDOMAccess()">Run Experiment →</button>
+    <div id="result-3" class="result"></div>
+    <iframe id="cross-origin-iframe" src="http://localhost:4000/iframe-page" width="100%" height="200"></iframe>
+
+    <div class="concept-box">
+      <h3>💡 Why can't we read the iframe?</h3>
+      <p>
+        The iframe loaded fine (you can see it!), but JavaScript on this page <strong>cannot access its DOM</strong>.<br>
+        Imagine if it could — any website could iframe your bank and read your account details!<br>
+        SOP prevents this by blocking <code>iframe.contentDocument</code> across origins.
+      </p>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- EXPERIMENT 4: Cross-Origin Cookie Access (blocked) -->
+  <!-- ============================================================ -->
+  <div class="experiment">
+    <h2>⚠️ Experiment 4: Cookies vs Same-Origin Policy <span style="color: #fbbf24; font-weight: bold;">(SURPRISE!)</span></h2>
+    <p>
+      You'd expect cookies to follow the Same-Origin Policy (scheme+host+port), right?<br>
+      <strong>WRONG!</strong> Cookies use a <strong>domain+path</strong> model where <strong>ports are completely ignored</strong>.<br>
+      This means <code>localhost:3000</code> and <code>localhost:4000</code> <strong>share the same cookie jar!</strong>
+    </p>
+    <button class="btn-test" onclick="setServerACookie()">Step 1: Set Cookie on Server A (:3000)</button>
+    <button class="btn-attack" onclick="trySetServerBCookie()">Step 2: Try Cross-Origin Fetch to Server B</button>
+    <a href="http://localhost:4000/set-cookie" target="_blank"><button type="button" class="btn-safe">Step 3: Open Server B Directly to Set Cookie</button></a>
+    <button class="btn-test" onclick="testCookieAccess()">Step 4: Read document.cookie Here</button>
+    <a href="http://localhost:4000" target="_blank"><button type="button" class="btn-attack">Step 5: Open Server B &amp; Check document.cookie There!</button></a>
+    <div id="result-4" class="result"></div>
+
+    <div class="concept-box">
+      <h3>🔥 CRITICAL: Cookies ≠ Same-Origin Policy!</h3>
+      <p>
+        <strong>SOP uses:</strong> <code>scheme</code> + <code>host</code> + <code>port</code> → localhost:3000 ≠ localhost:4000<br>
+        <strong>Cookies use:</strong> <code>domain</code> + <code>path</code> (port is IGNORED!) → localhost:3000 = localhost:4000<br><br>
+        This means:<br>
+        ✅ Server A sets <code>serverA_session</code> → visible on BOTH :3000 and :4000!<br>
+        ✅ Server B sets <code>serverB_session</code> → visible on BOTH :3000 and :4000!<br>
+        ❌ Cross-origin <code>fetch()</code> still blocks the response (SOP), but...<br>
+        ⚠️ Cookies set via direct navigation are shared across ports!<br><br>
+        <strong>🧠 Why this matters in real life:</strong><br>
+        In production, different origins have different domains (e.g., <code>myapp.com</code> vs <code>api.myapp.com</code>),<br>
+        so cookies ARE isolated. But on <code>localhost</code>, this port-sharing is a known quirk.<br><br>
+        <strong>🔒 Defense:</strong> Use <code>SameSite</code>, <code>Secure</code>, <code>HttpOnly</code> attributes, and cookie prefixes<br>
+        like <code>__Host-</code> to lock cookies down. We'll cover this in Project 5 (Cookie Security).
+      </p>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- EXPERIMENT 5: Cross-Origin Script Tag (allowed!) -->
+  <!-- ============================================================ -->
+  <div class="experiment">
+    <h2>⚠️ Experiment 5: Load a Script from Different Origin <span class="tag-allowed">(ALLOWED!)</span></h2>
+    <p>
+      SOP does NOT block loading scripts, images, or stylesheets from other origins!
+      This is why CDNs work — you can load jQuery from <code>cdn.jsdelivr.net</code>.
+      But this is also how XSS attacks work (loading malicious scripts).
+    </p>
+    <button class="btn-test" onclick="testScriptLoad()">Run Experiment →</button>
+    <div id="result-5" class="result"></div>
+
+    <div class="concept-box">
+      <h3>💡 SOP Exception: Resource Embedding</h3>
+      <p>
+        SOP blocks <strong>reading data</strong> cross-origin, but allows <strong>embedding resources</strong>:<br>
+        ✅ <code>&lt;script src="..."&gt;</code> — scripts can be loaded (but not read with fetch)<br>
+        ✅ <code>&lt;img src="..."&gt;</code> — images can be displayed<br>
+        ✅ <code>&lt;link href="..."&gt;</code> — stylesheets can be loaded<br>
+        ✅ <code>&lt;iframe src="..."&gt;</code> — pages can be framed (but DOM can't be read)<br>
+        ❌ <code>fetch()</code> / <code>XMLHttpRequest</code> — reading the response is blocked<br><br>
+        This is an important distinction! The browser <strong>executes</strong> cross-origin scripts but won't let you <strong>read</strong> cross-origin API responses.
+      </p>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- EXPERIMENT 6: postMessage (the allowed way) -->
+  <!-- ============================================================ -->
+  <div class="experiment">
+    <h2>✅ Experiment 6: Cross-Origin Communication with postMessage <span class="tag-allowed">(ALLOWED)</span></h2>
+    <p>
+      <code>window.postMessage()</code> is the <strong>safe, intentional</strong> way to communicate across origins.
+      Both sides must explicitly opt-in — the sender calls <code>postMessage()</code> and the receiver listens with <code>addEventListener('message')</code>.
+    </p>
+    <button class="btn-safe" onclick="testPostMessage()">Send Message to Server B →</button>
+    <div id="result-6" class="result"></div>
+    <iframe id="postmessage-iframe" src="http://localhost:4000/postmessage-page" width="100%" height="200"></iframe>
+
+    <div class="concept-box">
+      <h3>💡 postMessage Security</h3>
+      <p>
+        <code>postMessage</code> works because <strong>both sides consent</strong>:<br>
+        1. Sender specifies the target origin: <code>iframe.postMessage(data, 'http://localhost:4000')</code><br>
+        2. Receiver checks <code>event.origin</code> before processing the message<br><br>
+        ⚠️ <strong>Always validate the origin!</strong> Without checking, any website could send malicious messages to your iframe.
+      </p>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SUMMARY -->
+  <!-- ============================================================ -->
+  <div class="experiment" style="border-color: #38bdf8;">
+    <h2 style="color: #38bdf8;">📋 SOP Summary — What's Blocked vs Allowed</h2>
+    <table style="width: 100%; border-collapse: collapse; margin-top: 12px;">
+      <thead>
+        <tr style="border-bottom: 1px solid #334155;">
+          <th style="text-align: left; padding: 8px; color: #94a3b8;">Action</th>
+          <th style="text-align: center; padding: 8px; color: #22c55e;">Same Origin</th>
+          <th style="text-align: center; padding: 8px; color: #ef4444;">Cross Origin</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom: 1px solid #1e293b;"><td style="padding: 8px;"><code>fetch()</code> / XHR read response</td><td style="text-align: center;">✅</td><td style="text-align: center;">❌ Blocked</td></tr>
+        <tr style="border-bottom: 1px solid #1e293b;"><td style="padding: 8px;">Read iframe DOM</td><td style="text-align: center;">✅</td><td style="text-align: center;">❌ Blocked</td></tr>
+        <tr style="border-bottom: 1px solid #1e293b;"><td style="padding: 8px;">Read cookies (<code>document.cookie</code>)</td><td style="text-align: center;">✅</td><td style="text-align: center;">⚠️ Shared by domain! (port ignored)</td></tr>
+        <tr style="border-bottom: 1px solid #1e293b;"><td style="padding: 8px;">Load <code>&lt;script&gt;</code></td><td style="text-align: center;">✅</td><td style="text-align: center;">✅ Allowed</td></tr>
+        <tr style="border-bottom: 1px solid #1e293b;"><td style="padding: 8px;">Load <code>&lt;img&gt;</code></td><td style="text-align: center;">✅</td><td style="text-align: center;">✅ Allowed</td></tr>
+        <tr style="border-bottom: 1px solid #1e293b;"><td style="padding: 8px;">Embed <code>&lt;iframe&gt;</code></td><td style="text-align: center;">✅</td><td style="text-align: center;">✅ (but can't read DOM)</td></tr>
+        <tr><td style="padding: 8px;"><code>postMessage()</code></td><td style="text-align: center;">✅</td><td style="text-align: center;">✅ (both sides opt-in)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    <p>🛡️ Browser Security Roadmap — Project 2 of 15 | Next: <strong>Project 3: XSS Attack & Defense</strong></p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- JAVASCRIPT FOR ALL EXPERIMENTS -->
+  <!-- ============================================================ -->
+  <script>
+    function showResult(id, message, type) {
+      const el = document.getElementById(id);
+      el.style.display = 'block';
+      el.className = 'result result-' + type;
+      el.textContent = message;
+    }
+
+    // ---- EXPERIMENT 1: Same-Origin Fetch ----
+    async function testSameOrigin() {
+      try {
+        const res = await fetch('/api/same-origin-data');
+        const data = await res.json();
+        showResult('result-1',
+          '✅ SUCCESS! Same-origin request worked.\n\n' +
+          'Response from server:\n' +
+          JSON.stringify(data, null, 2) +
+          '\n\n💡 This worked because the request went from localhost:3000 → localhost:3000 (same origin).',
+          'success'
+        );
+      } catch (err) {
+        showResult('result-1', '❌ Error: ' + err.message, 'error');
+      }
+    }
+
+    // ---- EXPERIMENT 2: Cross-Origin Fetch ----
+    async function testCrossOriginFetch() {
+      try {
+        const res = await fetch('http://localhost:4000/api/secret-data');
+        const data = await res.json();
+        showResult('result-2',
+          '✅ Somehow it worked? This should NOT happen without CORS headers!\n' + JSON.stringify(data, null, 2),
+          'success'
+        );
+      } catch (err) {
+        showResult('result-2',
+          '❌ BLOCKED by Same-Origin Policy!\n\n' +
+          'Error: ' + err.message + '\n\n' +
+          '💡 What happened:\n' +
+          '1. Browser sent the request to localhost:4000 ✅\n' +
+          '2. Server B received it and responded ✅ (check terminal!)\n' +
+          '3. Browser saw NO "Access-Control-Allow-Origin" header ❌\n' +
+          '4. Browser BLOCKED JavaScript from reading the response ❌\n\n' +
+          '🧠 The SERVER does not enforce SOP — the BROWSER does!\n' +
+          '   In Project 7 (CORS), we will add the right headers to allow this.',
+          'error'
+        );
+      }
+    }
+
+    // ---- EXPERIMENT 3: iframe DOM Access ----
+    function testIframeDOMAccess() {
+      try {
+        const iframe = document.getElementById('cross-origin-iframe');
+        // This will throw a SecurityError!
+        const iframeContent = iframe.contentDocument.body.innerHTML;
+        showResult('result-3', '✅ Read iframe content: ' + iframeContent, 'success');
+      } catch (err) {
+        showResult('result-3',
+          '❌ BLOCKED! Cannot read cross-origin iframe DOM!\n\n' +
+          'Error: ' + err.message + '\n\n' +
+          '💡 What happened:\n' +
+          '1. The iframe loaded Server B\'s page ✅ (you can see it below)\n' +
+          '2. But iframe.contentDocument threw a SecurityError ❌\n' +
+          '3. JavaScript CANNOT read the DOM of a cross-origin iframe\n\n' +
+          '🧠 Why this matters:\n' +
+          '   Imagine evil.com iframes your bank page.\n' +
+          '   Without SOP, evil.com could read your account balance!\n' +
+          '   SOP prevents this by blocking DOM access across origins.',
+          'error'
+        );
+      }
+    }
+
+    // ---- EXPERIMENT 4: Cookie Access ----
+    async function setServerACookie() {
+      await fetch('/set-cookie');
+      const cookies = document.cookie;
+      showResult('result-4',
+        '🍪 Server A cookie set! ✅\n\n' +
+        'document.cookie right now: ' + (cookies || '(empty)') + '\n\n' +
+        '✅ Check DevTools → Application → Cookies → localhost\n' +
+        'You should see: serverA_session = secret_token_abc123\n\n' +
+        '💡 This worked because it\'s a same-origin request.\n' +
+        'Now click Step 2 to try cross-origin fetch, or Step 3 to set Server B\'s cookie directly.',
+        'success'
+      );
+    }
+
+    async function trySetServerBCookie() {
+      try {
+        await fetch('http://localhost:4000/set-cookie');
+        showResult('result-4',
+          '😱 Cross-origin fetch didn\'t throw? Check cookies...\n' +
+          'document.cookie: ' + (document.cookie || '(empty)') + '\n\n' +
+          '⚠️ Even if the fetch didn\'t error, the browser may have\n' +
+          'blocked the Set-Cookie header in the response.\n' +
+          'Check DevTools → Application → Cookies to verify.',
+          'info'
+        );
+      } catch (err) {
+        showResult('result-4',
+          '❌ Cross-origin fetch to Server B FAILED!\n\n' +
+          'Error: ' + err.message + '\n\n' +
+          '🧠 SOP blocked the RESPONSE (including Set-Cookie headers).\n\n' +
+          '1. Browser sent the request to localhost:4000/set-cookie ✅\n' +
+          '2. Server B responded with Set-Cookie ✅ (check terminal!)\n' +
+          '3. Browser blocked the response (no CORS headers) ❌\n' +
+          '4. Set-Cookie header was DISCARDED ❌\n\n' +
+          '👉 Now click Step 3: open Server B directly in a new tab.\n' +
+          '   That sets the cookie via same-origin navigation.\n' +
+          '   Then come back here and click Step 4!',
+          'error'
+        );
+      }
+    }
+
+    function testCookieAccess() {
+      const cookies = document.cookie;
+      const hasServerA = cookies.includes('serverA_session');
+      const hasServerB = cookies.includes('serverB_session');
+      
+      if (hasServerA && hasServerB) {
+        showResult('result-4',
+          '🔥 SURPRISE! document.cookie on localhost:3000 shows:\n' +
+          cookies + '\n\n' +
+          '😱 Wait — you can see BOTH cookies?!\n' +
+          '   ✅ serverA_session (set by :3000)\n' +
+          '   ✅ serverB_session (set by :4000)\n\n' +
+          '🧠 THIS IS THE KEY LESSON:\n' +
+          '   Cookies do NOT follow Same-Origin Policy!\n\n' +
+          '   SOP origin  = scheme + host + PORT  → :3000 ≠ :4000\n' +
+          '   Cookie scope = domain + path (NO PORT) → :3000 = :4000\n\n' +
+          '   Both servers are on "localhost", so they SHARE cookies!\n' +
+          '   The port is completely ignored for cookie scoping.\n\n' +
+          '👉 Click Step 5 to open Server B and run document.cookie there.\n' +
+          '   You\'ll see the SAME cookies! They\'re shared.\n\n' +
+          '🔒 In production, different services use different domains,\n' +
+          '   so cookies ARE properly isolated. This localhost quirk\n' +
+          '   is important to understand for local development!',
+          'info'
+        );
+      } else if (hasServerA && !hasServerB) {
+        showResult('result-4',
+          '🍪 document.cookie on localhost:3000:\n' +
+          cookies + '\n\n' +
+          '✅ serverA_session is here\n' +
+          '❌ serverB_session is NOT here (yet)\n\n' +
+          '👉 Did you complete Step 3? Open Server B directly in a new tab\n' +
+          '   to set its cookie, then come back and click Step 4 again.\n\n' +
+          '   You\'ll be SURPRISED by what happens!',
+          'info'
+        );
+      } else {
+        showResult('result-4',
+          '🍪 document.cookie: ' + (cookies || '(no cookies)') + '\n\n' +
+          '👉 Start with Step 1 to set Server A\'s cookie first.',
+          'info'
+        );
+      }
+    }
+
+    // ---- EXPERIMENT 5: Script Loading ----
+    function testScriptLoad() {
+      // Dynamically create a script tag pointing to Server B
+      const script = document.createElement('script');
+      script.src = 'http://localhost:4000/api/secret-data'; // This is JSON, not valid JS
+      script.onload = () => {
+        showResult('result-5',
+          '⚠️ Script tag loaded cross-origin content!\n\n' +
+          'But it failed to execute because JSON is not valid JavaScript.\n' +
+          'However, if Server B served actual JS code, it WOULD execute!\n\n' +
+          '💡 This is how CDNs work:\n' +
+          '   <script src="https://cdn.jsdelivr.net/npm/jquery"><\/script>\n' +
+          '   The browser loads and EXECUTES scripts from any origin.\n\n' +
+          '⚠️ This is also how XSS attacks work (Project 3):\n' +
+          '   If an attacker injects <script src="https://evil.com/steal.js"><\/script>\n' +
+          '   the browser will load and execute it on YOUR page!',
+          'info'
+        );
+      };
+      script.onerror = () => {
+        showResult('result-5',
+          '⚠️ The browser TRIED to load the script from Server B!\n\n' +
+          'It failed because the response wasn\'t valid JavaScript.\n' +
+          'But the KEY POINT: the browser DID make the request!\n\n' +
+          '💡 SOP blocks reading RESPONSES via fetch/XHR, but ALLOWS:\n' +
+          '   ✅ <script src="cross-origin"> — executes the code!\n' +
+          '   ✅ <img src="cross-origin"> — displays the image!\n' +
+          '   ✅ <link href="cross-origin"> — applies the CSS!\n\n' +
+          '🧠 This is why Subresource Integrity (SRI) exists (Project 12):\n' +
+          '   It verifies that CDN scripts haven\'t been tampered with.',
+          'info'
+        );
+      };
+      document.head.appendChild(script);
+    }
+
+    // ---- EXPERIMENT 6: postMessage ----
+    let messageCount = 0;
+    function testPostMessage() {
+      messageCount++;
+      const iframe = document.getElementById('postmessage-iframe');
+      const message = 'Hello from Server A! (message #' + messageCount + ')';
+
+      // Send message to Server B's iframe
+      // Second argument is the target origin — ALWAYS specify this!
+      iframe.contentWindow.postMessage(message, 'http://localhost:4000');
+
+      showResult('result-6',
+        '📤 Sent message to Server B: "' + message + '"\n\n' +
+        'Check the iframe below — it should show the received message.\n' +
+        'Waiting for response from Server B...',
+        'info'
+      );
+    }
+
+    // Listen for responses from Server B
+    window.addEventListener('message', (event) => {
+      // Ignore messages from browser extensions and other sources
+      if (!event.origin || event.origin === 'null') return;
+      if (event.origin === window.location.origin) return; // ignore same-origin (extensions)
+      
+      // 🧠 SECURITY: Only accept from Server B
+      if (event.origin !== 'http://localhost:4000') return;
+
+      console.log('📩 [Server A] Got response from Server B:', event.data);
+
+      const current = document.getElementById('result-6').textContent;
+      showResult('result-6',
+        current + '\n\n📩 Response from Server B: "' + event.data + '"\n\n' +
+        '✅ postMessage works cross-origin because BOTH sides opt-in!\n' +
+        '   Sender: iframe.contentWindow.postMessage(data, targetOrigin)\n' +
+        '   Receiver: window.addEventListener("message", handler)\n' +
+        '   Receiver checks: event.origin === "http://localhost:3000"',
+        'success'
+      );
+    });
+  </script>
+</body>
+</html>

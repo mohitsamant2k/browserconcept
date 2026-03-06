@@ -29,7 +29,7 @@
     <h1>🔐 Login</h1>
     <p class="subtitle">This form sends a POST request. Watch the Network tab!</p>
 
-    <form method="POST" action="/login">
+    <form id="loginForm">
       <label for="username">Username</label>
       <input type="text" id="username" name="username" placeholder="Enter username" required>
 
@@ -39,15 +39,59 @@
       <button type="submit">Login</button>
     </form>
 
+    <!-- Response appears here without page reload -->
+    <div id="response" style="display:none; margin-top: 16px; padding: 14px; border-radius: 8px; border: 1px solid #334155;"></div>
+
     <div class="info">
       <h3>🧠 What to Observe</h3>
       <p>
         1. Open <strong>DevTools → Network tab</strong> before clicking Login.<br>
-        2. Submit the form and notice the <code>POST</code> request (not GET!).<br>
-        3. Click on the request → look at <strong>Payload</strong> — your username and password are sent in the request body.<br>
-        4. Notice: on plain HTTP, this data is sent in <strong>cleartext</strong>. That's why HTTPS matters (Project 12)!
+        2. Submit the form — the page does NOT reload! The POST request stays in the Network tab.<br>
+        3. Click the <code>POST /login</code> request → <strong>Headers</strong> tab shows request/response headers.<br>
+        4. Click <strong>Payload</strong> tab — your username and password are in the request body in cleartext.<br>
+        5. Click <strong>Response</strong> tab — see the HTML the server sent back.<br>
+        6. Also check your <strong>terminal</strong> — the server logged everything.<br>
+        7. 💡 Tip: also check <strong>"Preserve log"</strong> in Network tab to keep logs across navigations.
       </p>
     </div>
   </div>
+
+  <script>
+    // Using fetch() instead of form submission prevents page reload,
+    // so the POST request stays visible in the Network tab!
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault(); // Stop the form from reloading the page
+
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const responseDiv = document.getElementById('response');
+
+      // Send POST request using fetch() — this stays in Network tab!
+      const res = await fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
+      });
+
+      const html = await res.text();
+
+      // Show server response on the page
+      responseDiv.style.display = 'block';
+      responseDiv.style.background = '#064e3b';
+      responseDiv.style.borderColor = '#22c55e';
+      responseDiv.innerHTML = `
+        <h3 style="color: #22c55e; margin-bottom: 8px;">✅ Login Response (Status: ${res.status})</h3>
+        <p style="color: #94a3b8; font-size: 13px; margin-bottom: 8px;">
+          The POST request is now visible in the Network tab! Click on it to inspect:
+        </p>
+        <p style="color: #6ee7b7; font-size: 13px;">
+          📥 <strong>Headers</strong> — see Content-Type, User-Agent, etc.<br>
+          📦 <strong>Payload</strong> — see username & password in cleartext!<br>
+          📤 <strong>Response</strong> — see the HTML the server returned.<br>
+          🖥️ <strong>Terminal</strong> — server logged the full request.
+        </p>
+      `;
+    });
+  </script>
 </body>
 </html>

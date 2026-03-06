@@ -186,39 +186,211 @@
 
 ---
 
-### Project 10: Implement OAuth 2.0 with GitHub Login
-**Concepts:** OAuth 2.0 Authorization Code Flow, PKCE, tokens, scopes
+### Project 10: Implement All OAuth 2.0 Flows
+**Concepts:** OAuth 2.0 grant types, public vs confidential clients, PKCE, tokens, scopes, OpenID Connect
 
-**What you build:**
+#### Part A — Understand Public vs Confidential Clients
+- [ ] Build a comparison dashboard that explains:
+
+| | **Confidential Client** | **Public Client** |
+|---|---|---|
+| **What** | Server-side app (Node.js, Python) | SPA, mobile app, CLI |
+| **Has a secret?** | ✅ Yes — `client_secret` stored on server | ❌ No — can't hide secrets in browser/app |
+| **Example** | Express backend | React SPA, Android app |
+| **Secure?** | More secure — secret never exposed | Less secure — needs PKCE to compensate |
+
+#### Part B — Authorization Code Flow (Confidential Client)
 - [ ] Register an OAuth App on GitHub (Settings → Developer Settings)
 - [ ] **Step 1:** Redirect user to GitHub's `/authorize` endpoint with `client_id`, `redirect_uri`, `scope`, `state`
-- [ ] **Step 2:** Handle callback — receive `code`, exchange it for `access_token` via server-to-server request
+- [ ] **Step 2:** Handle callback — receive `code`, exchange it for `access_token` using `client_secret` (server-to-server)
 - [ ] **Step 3:** Use `access_token` to fetch user profile from GitHub API
 - [ ] **Step 4:** Create a session for the user, display their GitHub profile
 - [ ] **Security:** Validate the `state` parameter to prevent CSRF
-- [ ] **Security:** Store tokens server-side only, never expose to client
-- [ ] **Bonus:** Implement PKCE flow (code_verifier + code_challenge)
-- [ ] **Bonus:** Add Google as a second OAuth provider
+- [ ] **Security:** Store `client_secret` and tokens server-side only, never expose to client
 
-**You'll learn:** The full OAuth flow, why each step exists, and security pitfalls.
+#### Part C — Authorization Code Flow + PKCE (Public Client)
+- [ ] Build a frontend-only SPA that does OAuth WITHOUT a `client_secret`
+- [ ] **Step 1:** Generate `code_verifier` (random string) and `code_challenge` (SHA256 hash of verifier)
+- [ ] **Step 2:** Redirect to `/authorize` with `code_challenge` and `code_challenge_method=S256`
+- [ ] **Step 3:** On callback, exchange `code` + `code_verifier` for `access_token` (no secret needed!)
+- [ ] **Why PKCE?** Without it, an attacker who intercepts the `code` can steal the token. With PKCE, they also need the `code_verifier` which never left the browser
+- [ ] **Visual:** Build a diagram showing the PKCE flow step by step
+
+#### Part D — Client Credentials Flow (Machine-to-Machine)
+- [ ] Build a backend service that talks to another API with no user involved
+- [ ] **Step 1:** Send `client_id` + `client_secret` directly to the token endpoint
+- [ ] **Step 2:** Receive `access_token` — no user login, no redirect
+- [ ] **Use case:** Cron job fetching data, microservice-to-microservice auth
+- [ ] **Security:** This flow should NEVER be used in a browser (secret would be exposed)
+
+#### Part E — Implicit Flow (Deprecated — Build to Understand Why)
+- [ ] Build the implicit flow: redirect directly returns `access_token` in URL fragment
+- [ ] **Step 1:** Redirect to `/authorize` with `response_type=token`
+- [ ] **Step 2:** Token comes back in URL: `#access_token=xyz`
+- [ ] **Demonstrate the problem:** Token is in browser history, URL bar, referer headers
+- [ ] **Show why it's deprecated:** No `code_verifier`, no server-side exchange, token exposed everywhere
+- [ ] **Conclusion:** Always use Authorization Code + PKCE instead
+
+#### Part F — Refresh Tokens
+- [ ] Implement token refresh: short-lived `access_token` (15 min) + long-lived `refresh_token` (7 days)
+- [ ] Build a `/refresh` endpoint that accepts a refresh token and returns a new access token
+- [ ] Implement **refresh token rotation** — issue a new refresh token on each use, invalidate the old one
+- [ ] **Attack:** Replay an old refresh token → server detects reuse → revokes all tokens for that user
+
+#### Part G — Add Multiple Providers
+- [ ] Add **Google** as a second OAuth provider (Authorization Code + PKCE)
+- [ ] Add **GitHub** as the first provider (Authorization Code)
+- [ ] Build a login page with "Login with GitHub" and "Login with Google" buttons
+- [ ] Handle account linking — same email from different providers = same user account
+- [ ] **OpenID Connect:** Use Google's OIDC to get an `id_token` (JWT) with user info
+
+#### Part H — OAuth Security Dashboard
+- [ ] Build a visual page comparing all flows side by side:
+
+| Flow | Client Type | Has Secret? | Has PKCE? | User Involved? | Secure? |
+|------|------------|-------------|-----------|----------------|---------|
+| Authorization Code | Confidential | ✅ | Optional | ✅ | ✅✅✅ |
+| Auth Code + PKCE | Public | ❌ | ✅ | ✅ | ✅✅ |
+| Client Credentials | Confidential | ✅ | ❌ | ❌ | ✅✅ |
+| Implicit (deprecated) | Public | ❌ | ❌ | ✅ | ❌ |
+
+- [ ] Log every OAuth step with timestamps — show the full journey from login click to API access
+
+#### Part I — Scopes & Consent
+- [ ] Implement scopes to limit what an app can access:
+
+| Scope | What it allows |
+|-------|---------------|
+| `read:profile` | Read user's name, email, avatar |
+| `read:repos` | List user's repositories |
+| `write:repos` | Create/edit repositories |
+| `admin` | Full access (dangerous!) |
+
+- [ ] Build a consent screen: "App X wants to access your profile and repos. Allow?"
+- [ ] Store granted scopes per user per app
+- [ ] Enforce scopes on API routes — if token has `read:profile` but hits `/api/repos`, return `403 Forbidden`
+- [ ] **Principle of Least Privilege:** Apps should request minimum scopes needed
+- [ ] Build a "Manage Connected Apps" page where users can view and revoke app access
+
+#### Part J — Token Introspection & Revocation
+- [ ] Build a `/oauth/introspect` endpoint (RFC 7662):
+  - Input: `access_token`
+  - Output: `{ active: true/false, scope, client_id, exp, sub }`
+- [ ] Build a `/oauth/revoke` endpoint (RFC 7009):
+  - Immediately invalidate a token before it expires
+- [ ] **Opaque tokens vs JWTs:**
+  - Opaque: random string, must call introspect endpoint to validate → server round-trip
+  - JWT: self-contained, validated locally by checking signature → no server call needed
+  - Build both and compare performance
+- [ ] Implement a token blacklist for revoked JWTs (since JWTs can't be "deleted")
+
+#### Part K — OAuth Security Attacks & Defenses
+- [ ] **Attack 1: Redirect URI manipulation** — register `redirect_uri=https://evil.com` → steal auth code
+  - **Fix:** Exact match redirect URI validation (no wildcards)
+- [ ] **Attack 2: Missing `state` parameter** — CSRF attack on OAuth login
+  - **Fix:** Generate random `state`, validate on callback
+- [ ] **Attack 3: Authorization code interception** — steal code from URL
+  - **Fix:** PKCE (code_verifier proves you started the flow)
+- [ ] **Attack 4: Token leakage via referer** — access_token in URL fragment leaks to other sites
+  - **Fix:** Use Authorization Code flow, never put tokens in URLs
+- [ ] **Attack 5: Insufficient scope validation** — app asks for `admin` when it only needs `read:profile`
+  - **Fix:** Server enforces scope restrictions
+
+**You'll learn:** Every OAuth flow, scopes, consent, token lifecycle, public vs confidential clients, PKCE, security attacks, and why implicit flow is dead.
 
 ---
 
 ### Project 11: Build and Break JWTs
-**Concepts:** JWT structure, signing, verification, common vulnerabilities
+**Concepts:** JWT structure, header, claims, signing, verification, common vulnerabilities
 
-**What you build:**
-- [ ] Build a login API that returns a JWT (use `jsonwebtoken` library)
-- [ ] JWT contains: `sub`, `name`, `role`, `iat`, `exp`
-- [ ] Protected API routes that verify the JWT
-- [ ] Build a JWT debugger page (decode header, payload, verify signature — like jwt.io)
-- [ ] **Attack 1:** Change `role: "admin"` in payload without re-signing → should fail verification
-- [ ] **Attack 2:** Set algorithm to `none` → understand why servers must reject this
-- [ ] **Attack 3:** Confuse HS256/RS256 algorithm → understand algorithm confusion attacks
-- [ ] **Fix:** Explicitly specify allowed algorithms in verification
-- [ ] Implement refresh tokens with rotation (invalidate old refresh token on use)
+#### Part A — JWT Structure Deep Dive
+- [ ] Build a JWT from scratch (without libraries first!) to understand the 3 parts:
 
-**You'll learn:** JWT internals, why they're easy to misuse, and secure implementation.
+```
+Header.Payload.Signature
+```
+
+- [ ] **Header** — algorithm and token type:
+```json
+{ "alg": "HS256", "typ": "JWT" }
+```
+
+- [ ] **Payload (Claims)** — the actual data. Build all three types:
+
+| Claim Type | Claims | Purpose |
+|-----------|--------|----------|
+| **Registered** (standard) | `iss` (issuer), `sub` (subject), `aud` (audience), `exp` (expiration), `nbf` (not before), `iat` (issued at), `jti` (JWT ID) | Standard fields defined by RFC 7519 |
+| **Public** | `name`, `email`, `picture`, `email_verified` | Common fields (registered at IANA) |
+| **Private** | `role`, `permissions`, `tenant_id`, `plan` | Custom fields for your app |
+
+- [ ] **Signature** — `HMAC-SHA256(base64(header) + "." + base64(payload), secret)`
+
+#### Part B — All Registered Claims in Action
+- [ ] Build a JWT generator that lets you set each claim and see the effect:
+
+| Claim | What it does | Example | What happens if wrong |
+|-------|-------------|---------|----------------------|
+| `iss` | Who created the token | `"auth.myapp.com"` | Server rejects token from unknown issuer |
+| `sub` | Who the token is about | `"user_123"` | Identifies the user |
+| `aud` | Who the token is for | `"api.myapp.com"` | API rejects token meant for a different service |
+| `exp` | When the token expires | `1709856000` (Unix timestamp) | Server rejects expired tokens |
+| `nbf` | Don't use before this time | `1709855000` | Server rejects token used too early |
+| `iat` | When the token was created | `1709855000` | Helps calculate age |
+| `jti` | Unique token ID | `"abc-123-def"` | Prevents token replay attacks |
+
+- [ ] **Experiment:** Set `exp` to 10 seconds from now → use the token → wait 11 seconds → use it again → see it rejected
+- [ ] **Experiment:** Set `aud` to `"api-1.com"` → send it to `"api-2.com"` → see it rejected
+- [ ] **Experiment:** Use `jti` to prevent the same token from being used twice (replay protection)
+
+#### Part C — Signing Algorithms
+- [ ] Implement **HS256** (symmetric) — same secret to sign and verify
+- [ ] Implement **RS256** (asymmetric) — private key signs, public key verifies
+- [ ] Build a comparison:
+
+| | HS256 | RS256 |
+|---|---|---|
+| Key type | Shared secret | Public + Private key pair |
+| Who can sign? | Anyone with the secret | Only the private key holder |
+| Who can verify? | Anyone with the secret | Anyone with the public key |
+| Use case | Single server | Microservices (auth server signs, API servers verify with public key) |
+| Risk | Secret must be shared with every service | Private key stays on auth server only |
+
+- [ ] **Experiment:** Sign with RS256, distribute only the public key to API servers → they can verify but never create fake tokens
+
+#### Part D — JWT Attacks & Defenses
+- [ ] **Attack 1: Payload tampering** — Change `role: "user"` to `role: "admin"` without re-signing → should fail verification
+- [ ] **Attack 2: `none` algorithm** — Set `alg: "none"`, remove signature → see if server accepts it
+  - **Fix:** Always specify `algorithms: ['HS256']` in verification, never allow `none`
+- [ ] **Attack 3: Algorithm confusion** — Server uses RS256, but attacker sends HS256 using the public key as the HMAC secret
+  - **Fix:** Explicitly set allowed algorithm, never trust the header's `alg`
+- [ ] **Attack 4: Missing `exp` claim** — Token never expires → stolen token works forever
+  - **Fix:** Always require `exp`, set short expiry (15 min)
+- [ ] **Attack 5: Token in localStorage** — Steal via XSS: `localStorage.getItem('token')`
+  - **Fix:** Store in HttpOnly cookie or in-memory only
+- [ ] **Attack 6: `jku`/`x5u` injection** — Attacker points to their own key server
+  - **Fix:** Whitelist trusted key URLs
+
+#### Part E — JWT vs Session Comparison
+- [ ] Build both auth systems side by side and compare:
+
+| | JWT (Stateless) | Session (Stateful) |
+|---|---|---|
+| Stored where? | Client (cookie/header) | Server (memory/DB) |
+| Scalable? | ✅ No server storage | ❌ Need shared session store |
+| Revocable? | ❌ Hard (needs blacklist) | ✅ Just delete from store |
+| Size | Large (contains all claims) | Small (just session ID) |
+| Best for | APIs, microservices | Traditional web apps |
+
+#### Part F — Real-World JWT Implementation
+- [ ] Build a complete auth API:
+  - `POST /auth/login` → returns `access_token` (JWT, 15 min) + `refresh_token` (opaque, 7 days)
+  - `GET /api/profile` → requires valid JWT in `Authorization: Bearer <token>` header
+  - `POST /auth/refresh` → exchange refresh token for new access token + new refresh token
+  - `POST /auth/logout` → add JWT `jti` to blacklist, delete refresh token
+- [ ] Build a JWT debugger page (like jwt.io) — paste a token, see decoded header, payload, and signature verification result
+- [ ] Add role-based access control: `role: "admin"` can access `/api/admin`, `role: "user"` cannot
+
+**You'll learn:** JWT structure, all claim types, signing algorithms, every major attack, and when to use JWTs vs sessions.
 
 ---
 
