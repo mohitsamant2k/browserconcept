@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= post.title %> — SecureBlog</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; }
+    .navbar { background: #1e293b; padding: 16px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
+    .navbar h1 { color: #38bdf8; font-size: 20px; }
+    .navbar a { color: #94a3b8; text-decoration: none; margin-left: 20px; font-size: 14px; }
+    .navbar a:hover { color: #38bdf8; }
+    .safe-toggle form { display: inline; }
+    .safe-toggle button { padding: 6px 14px; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: bold; }
+    .safe-on { background: #22c55e; color: white; }
+    .safe-off { background: #ef4444; color: white; }
+    .container { max-width: 900px; margin: 0 auto; padding: 30px 40px; }
+    code { background: #334155; padding: 2px 6px; border-radius: 4px; font-size: 13px; color: #fbbf24; }
+    .concept-box { background: #1e293b; border-left: 3px solid #fbbf24; padding: 16px 20px; margin: 16px 0; border-radius: 0 8px 8px 0; }
+    .concept-box h3 { color: #fbbf24; font-size: 14px; margin-bottom: 6px; }
+    .concept-box p { color: #94a3b8; font-size: 13px; line-height: 1.5; }
+    .comment { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; }
+    .comment .author { color: #38bdf8; font-weight: bold; font-size: 13px; }
+    .comment .text { color: #94a3b8; font-size: 14px; margin-top: 4px; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; color: #94a3b8; font-size: 13px; margin-bottom: 4px; }
+    .form-group input, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #334155; border-radius: 8px; background: #1e293b; color: #e2e8f0; font-size: 14px; font-family: inherit; }
+    .form-group textarea { min-height: 60px; resize: vertical; }
+    .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #38bdf8; }
+    button { padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; }
+    .btn-primary { background: #0ea5e9; color: white; }
+    .btn-danger { background: #ef4444; color: white; }
+    .tag-xss { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; background: #ef444420; color: #fca5a5; border: 1px solid #ef4444; }
+    .result-box { padding: 14px; border-radius: 8px; margin: 12px 0; font-family: monospace; font-size: 13px; }
+    .result-safe { background: #064e3b; border: 1px solid #059669; color: #6ee7b7; }
+    .result-danger { background: #4c1d2e; border: 1px solid #ef4444; color: #fca5a5; }
+    .footer { margin-top: 40px; padding: 20px 40px; border-top: 1px solid #334155; color: #64748b; font-size: 13px; text-align: center; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div style="display: flex; align-items: center; gap: 20px;">
+      <h1>🛡️ SecureBlog</h1>
+      <a href="/">Home</a>
+      <a href="/search">Search</a>
+      <a href="/dom-xss">DOM XSS</a>
+      <a href="/playground">⚔️ Playground</a>
+    </div>
+    <div class="safe-toggle">
+      <form action="/toggle-safe-mode" method="POST">
+        <button class="<%= safeMode ? 'safe-on' : 'safe-off' %>">
+          <%= safeMode ? '🛡️ SAFE' : '🔴 UNSAFE' %>
+        </button>
+      </form>
+    </div>
+  </nav>
+
+  <div class="container">
+    <a href="/" style="color: #38bdf8; text-decoration: none; font-size: 14px;">← Back to all posts</a>
+
+    <h1 style="margin: 16px 0 8px;"><%= post.title %></h1>
+    <p style="color: #64748b; font-size: 13px; margin-bottom: 16px;">By <%= post.author %></p>
+    <p style="color: #94a3b8; line-height: 1.6; margin-bottom: 30px;"><%= post.content %></p>
+
+    <hr style="border-color: #334155; margin-bottom: 24px;" />
+
+    <!-- ============================================ -->
+    <!-- COMMENTS SECTION — STORED XSS HAPPENS HERE! -->
+    <!-- ============================================ -->
+    <h2 style="color: #38bdf8; margin-bottom: 12px;">
+      💬 Comments (<%= post.comments.length %>) <span class="tag-xss">Stored XSS</span>
+    </h2>
+
+    <% if (!safeMode) { %>
+      <div class="result-box result-danger">
+        🔴 UNSAFE: Comments rendered with <code>&lt;%- %&gt;</code> (raw HTML — XSS possible!)
+      </div>
+    <% } else { %>
+      <div class="result-box result-safe">
+        🛡️ SAFE: Comments rendered with <code>&lt;%= %&gt;</code> (auto-escaped — XSS blocked!)
+      </div>
+    <% } %>
+
+    <% post.comments.forEach(comment => { %>
+      <div class="comment">
+        <div class="author"><%= comment.author %></div>
+        <!-- THIS IS THE VULNERABLE LINE -->
+        <% if (!safeMode) { %>
+          <div class="text"><%- comment.text %></div>
+        <% } else { %>
+          <div class="text"><%= comment.text %></div>
+        <% } %>
+      </div>
+    <% }) %>
+
+    <% if (post.comments.length === 0) { %>
+      <p style="color: #64748b; margin: 16px 0;">No comments yet. Be the first!</p>
+    <% } %>
+
+    <!-- ADD COMMENT FORM -->
+    <div style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; margin-top: 20px;">
+      <h3 style="margin-bottom: 12px; font-size: 16px;">✏️ Add a Comment</h3>
+      <form action="/post/<%= post.id %>/comment" method="POST">
+        <div class="form-group">
+          <label>Your Name</label>
+          <input name="author" placeholder="Anonymous" />
+        </div>
+        <div class="form-group">
+          <label>Comment (try XSS payloads here!)</label>
+          <textarea name="text" placeholder="Write a comment..." required></textarea>
+        </div>
+        <button class="btn-primary" type="submit">Post Comment</button>
+      </form>
+    </div>
+
+    <div class="concept-box" style="margin-top: 24px;">
+      <h3>🔴 Stored XSS — How it works</h3>
+      <p>
+        The attacker submits malicious code (e.g., in a comment), and it gets <strong>stored</strong> in the database.<br>
+        Every time ANY user views this page, the malicious code <strong>executes in their browser</strong>.<br><br>
+        <strong>This is the most dangerous type of XSS</strong> because:<br>
+        1. The attacker doesn't need to trick each victim into clicking a link<br>
+        2. Every visitor to the page gets attacked automatically<br>
+        3. It persists until someone deletes the comment<br><br>
+        <strong>Try these in the comment box:</strong><br>
+        <code>&lt;script&gt;alert('Stored XSS!')&lt;/script&gt;</code><br>
+        <code>&lt;img src=x onerror=alert('Stored XSS!')&gt;</code><br>
+        <code>&lt;b onmouseover=alert('hover!')&gt;Hover me&lt;/b&gt;</code><br><br>
+        <strong>Defense:</strong> Escape output! Use <code>&lt;%= %&gt;</code> instead of <code>&lt;%- %&gt;</code>.<br>
+        Or use a sanitizer like <strong>DOMPurify</strong> if you need to allow some HTML.
+      </p>
+    </div>
+  </div>
+
+  <div class="footer">
+    🛡️ Project 3: XSS Attack & Defense
+  </div>
+</body>
+</html>

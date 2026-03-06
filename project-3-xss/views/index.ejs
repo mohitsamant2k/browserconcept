@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SecureBlog — XSS Demo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; }
+    
+    .navbar { background: #1e293b; padding: 16px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
+    .navbar h1 { color: #38bdf8; font-size: 20px; }
+    .navbar a { color: #94a3b8; text-decoration: none; margin-left: 20px; font-size: 14px; }
+    .navbar a:hover { color: #38bdf8; }
+    
+    .safe-toggle { display: flex; align-items: center; gap: 10px; }
+    .safe-toggle form { display: inline; }
+    .safe-toggle button { padding: 6px 14px; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: bold; }
+    .safe-on { background: #22c55e; color: white; }
+    .safe-off { background: #ef4444; color: white; }
+    .safe-label { font-size: 12px; color: #94a3b8; }
+
+    .container { max-width: 900px; margin: 0 auto; padding: 30px 40px; }
+    
+    .concept-box { background: #1e293b; border-left: 3px solid #fbbf24; padding: 16px 20px; margin: 16px 0; border-radius: 0 8px 8px 0; }
+    .concept-box h3 { color: #fbbf24; font-size: 14px; margin-bottom: 6px; }
+    .concept-box p { color: #94a3b8; font-size: 13px; line-height: 1.5; }
+    
+    .post-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; margin-bottom: 16px; transition: border-color 0.2s; }
+    .post-card:hover { border-color: #38bdf8; }
+    .post-card h2 { font-size: 18px; margin-bottom: 6px; }
+    .post-card h2 a { color: #e2e8f0; text-decoration: none; }
+    .post-card h2 a:hover { color: #38bdf8; }
+    .post-card .meta { color: #64748b; font-size: 13px; margin-bottom: 8px; }
+    .post-card p { color: #94a3b8; font-size: 14px; line-height: 1.5; }
+    
+    .search-bar { display: flex; gap: 8px; margin: 20px 0; }
+    .search-bar input { flex: 1; padding: 10px 16px; border: 1px solid #334155; border-radius: 8px; background: #1e293b; color: #e2e8f0; font-size: 14px; }
+    .search-bar input:focus { outline: none; border-color: #38bdf8; }
+    
+    button, .btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; text-decoration: none; display: inline-block; }
+    .btn-primary { background: #0ea5e9; color: white; }
+    .btn-primary:hover { background: #0284c7; }
+    .btn-danger { background: #ef4444; color: white; }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-safe { background: #22c55e; color: white; }
+    .btn-safe:hover { background: #16a34a; }
+    .btn-warning { background: #f59e0b; color: black; }
+    .btn-warning:hover { background: #d97706; }
+    
+    code { background: #334155; padding: 2px 6px; border-radius: 4px; font-size: 13px; color: #fbbf24; }
+    
+    .comment { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; }
+    .comment .author { color: #38bdf8; font-weight: bold; font-size: 13px; }
+    .comment .text { color: #94a3b8; font-size: 14px; margin-top: 4px; }
+    
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; color: #94a3b8; font-size: 13px; margin-bottom: 4px; }
+    .form-group input, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #334155; border-radius: 8px; background: #1e293b; color: #e2e8f0; font-size: 14px; font-family: inherit; }
+    .form-group textarea { min-height: 80px; resize: vertical; }
+    .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #38bdf8; }
+    
+    .tag-xss { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+    .tag-reflected { background: #7c3aed20; color: #a78bfa; border: 1px solid #7c3aed; }
+    .tag-stored { background: #ef444420; color: #fca5a5; border: 1px solid #ef4444; }
+    .tag-dom { background: #f59e0b20; color: #fcd34d; border: 1px solid #f59e0b; }
+    
+    .attack-card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+    .attack-card h3 { font-size: 15px; margin-bottom: 6px; }
+    .attack-card .payload { background: #0f172a; border: 1px solid #ef4444; border-radius: 6px; padding: 10px; font-family: monospace; font-size: 13px; color: #fca5a5; margin: 8px 0; word-break: break-all; }
+    .attack-card p { color: #94a3b8; font-size: 13px; line-height: 1.5; }
+    
+    .result-box { padding: 14px; border-radius: 8px; margin: 12px 0; font-family: monospace; font-size: 13px; }
+    .result-safe { background: #064e3b; border: 1px solid #059669; color: #6ee7b7; }
+    .result-danger { background: #4c1d2e; border: 1px solid #ef4444; color: #fca5a5; }
+    
+    .footer { margin-top: 40px; padding: 20px 40px; border-top: 1px solid #334155; color: #64748b; font-size: 13px; text-align: center; }
+    
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #334155; font-size: 13px; }
+    th { color: #94a3b8; }
+    td { color: #e2e8f0; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div style="display: flex; align-items: center; gap: 20px;">
+      <h1>🛡️ SecureBlog</h1>
+      <a href="/">Home</a>
+      <a href="/search">Search</a>
+      <a href="/dom-xss">DOM XSS</a>
+      <a href="/playground">⚔️ Attack Playground</a>
+    </div>
+    <div class="safe-toggle">
+      <span class="safe-label">Defense Mode:</span>
+      <form action="/toggle-safe-mode" method="POST">
+        <button class="<%= safeMode ? 'safe-on' : 'safe-off' %>">
+          <%= safeMode ? '🛡️ SAFE MODE ON' : '🔴 UNSAFE MODE' %>
+        </button>
+      </form>
+    </div>
+  </nav>
+  
+  <div class="container">
+    <% if (!safeMode) { %>
+      <div class="result-box result-danger" style="margin-top: 20px;">
+        ⚠️ <strong>UNSAFE MODE</strong> — The app is vulnerable to XSS! Try the attacks in the playground.
+      </div>
+    <% } else { %>
+      <div class="result-box result-safe" style="margin-top: 20px;">
+        🛡️ <strong>SAFE MODE ON</strong> — All XSS defenses are active. Previous attacks should be blocked.
+      </div>
+    <% } %>
+
+    <h2 style="margin: 24px 0 8px; color: #38bdf8;">📝 Blog Posts</h2>
+    
+    <form action="/search" method="GET" class="search-bar">
+      <input type="text" name="q" placeholder="Search posts... (try XSS payloads here!)" />
+      <button class="btn-primary" type="submit">🔍 Search</button>
+    </form>
+
+    <% posts.forEach(post => { %>
+      <div class="post-card">
+        <h2><a href="/post/<%= post.id %>"><%= post.title %></a></h2>
+        <div class="meta">By <%= post.author %> · <%= post.comments.length %> comment(s)</div>
+        <p><%= post.content.substring(0, 150) %><%= post.content.length > 150 ? '...' : '' %></p>
+      </div>
+    <% }) %>
+
+    <div class="post-card" style="border-style: dashed;">
+      <h2 style="color: #94a3b8;">✏️ Create New Post</h2>
+      <form action="/post/create" method="POST">
+        <div class="form-group">
+          <label>Title</label>
+          <input name="title" placeholder="My blog post title" required />
+        </div>
+        <div class="form-group">
+          <label>Content</label>
+          <textarea name="content" placeholder="Write something..." required></textarea>
+        </div>
+        <div class="form-group">
+          <label>Author</label>
+          <input name="author" placeholder="Your name" />
+        </div>
+        <button class="btn-primary" type="submit">Create Post</button>
+      </form>
+    </div>
+
+    <div style="margin-top: 20px;">
+      <form action="/api/clear-comments" method="POST" style="display: inline;">
+        <button class="btn-danger" type="submit">🗑️ Clear All Comments</button>
+      </form>
+    </div>
+
+    <div class="concept-box" style="margin-top: 24px;">
+      <h3>🧠 What is XSS (Cross-Site Scripting)?</h3>
+      <p>
+        XSS is when an attacker injects malicious JavaScript into a web page that other users visit.<br>
+        The browser <strong>trusts</strong> all scripts on a page — it can't tell "good" scripts from "injected" ones.<br><br>
+        <strong>3 types:</strong><br>
+        <span class="tag-xss tag-reflected">Reflected</span> Input reflected immediately in the response (search pages, error messages)<br>
+        <span class="tag-xss tag-stored">Stored</span> Input saved to database and shown to all users (comments, profiles)<br>
+        <span class="tag-xss tag-dom">DOM</span> Input used by client-side JavaScript directly (no server involved)
+      </p>
+    </div>
+  </div>
+
+  <div class="footer">
+    🛡️ Browser Security Roadmap — Project 3 of 15 | Next: <strong>Project 4: CSRF Attack & Defense</strong>
+  </div>
+</body>
+</html>
