@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>😈 Attacker Site — SameSite Cookie Tester</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      padding: 30px 20px;
+      color: #e0e0e0;
+    }
+
+    .container { max-width: 750px; margin: 0 auto; }
+
+    h1 { text-align: center; font-size: 32px; margin-bottom: 6px; }
+    .subtitle { text-align: center; color: #888; margin-bottom: 24px; font-size: 14px; }
+
+    .card { background: rgba(255,255,255,0.08); backdrop-filter: blur(10px); padding: 20px 24px; border-radius: 12px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.1); }
+    .card h2 { font-size: 16px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+
+    .reminder { background: rgba(231,76,60,0.15); border: 1px solid rgba(231,76,60,0.4); padding: 12px 18px; border-radius: 10px; margin-bottom: 16px; font-size: 13px; text-align: center; }
+    .reminder a { color: #ffd700; font-weight: 700; }
+
+    .test-btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; color: white; margin: 4px; }
+    .test-btn.fetch { background: #e74c3c; }
+    .test-btn.fetch:hover { background: #c0392b; }
+    .test-btn.nav { background: #3498db; }
+    .test-btn.nav:hover { background: #2980b9; }
+    .test-btn.post { background: #e67e22; }
+    .test-btn.post:hover { background: #d35400; }
+    .test-btn.img { background: #9b59b6; }
+    .test-btn.img:hover { background: #8e44ad; }
+
+    .result-box { margin-top: 10px; padding: 14px; background: rgba(0,0,0,0.4); border-radius: 8px; font-family: 'Consolas', monospace; font-size: 12px; min-height: 50px; white-space: pre-wrap; word-break: break-all; line-height: 1.5; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.2); color: #aaa; font-size: 12px; }
+    td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+    .badge.sent { background: rgba(231,76,60,0.3); color: #e74c3c; }
+    .badge.blocked { background: rgba(39,174,96,0.3); color: #27ae60; }
+    .badge.partial { background: rgba(241,196,15,0.3); color: #f1c40f; }
+
+    code { background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>😈 Attacker's Cross-Site Tester</h1>
+    <p class="subtitle">This page runs on 127.0.0.1:4000 — a different <strong>site</strong> from localhost:3000</p>
+
+    <div class="reminder">
+      ⚠️ First, login at <a href="http://localhost:3000" target="_blank">localhost:3000</a>,
+      then come back here to test cross-site cookie behavior.<br>
+      <span style="font-size:11px; color:#f1c40f;">This page must be accessed via <strong>http://127.0.0.1:4000</strong> (NOT localhost:4000) for SameSite to work!</span>
+    </div>
+
+    <!-- Test 1: Fetch (sub-request) -->
+    <div class="card">
+      <h2>🧪 Test 1: Cross-Site Fetch (sub-request)</h2>
+      <p style="font-size: 13px; color: #aaa; margin-bottom: 10px;">
+        Uses <code>fetch()</code> with <code>credentials: 'include'</code> to request
+        <code>localhost:3000/api/profile</code> from this page (localhost:4000).
+      </p>
+
+      <button class="test-btn fetch" onclick="testFetch()">
+        🔥 Send Cross-Site Fetch
+      </button>
+
+      <div class="result-box" id="fetch-result">Click to test...</div>
+
+      <p style="font-size: 12px; margin-top: 8px; color: #888;">
+        <strong>SameSite=None:</strong> <span class="badge sent">Cookie Sent</span> — attacker reads your profile<br>
+        <strong>SameSite=Lax:</strong> <span class="badge blocked">Cookie Blocked</span> — fetch is a sub-request<br>
+        <strong>SameSite=Strict:</strong> <span class="badge blocked">Cookie Blocked</span> — no cross-site cookies
+      </p>
+    </div>
+
+    <!-- Test 2: Top-Level Navigation (link click) -->
+    <div class="card">
+      <h2>🧪 Test 2: Top-Level Navigation (link click)</h2>
+      <p style="font-size: 13px; color: #aaa; margin-bottom: 10px;">
+        Clicking a link that navigates to <code>localhost:3000</code>.
+        This is a "top-level navigation" — SameSite=Lax allows cookies for these!
+      </p>
+
+      <a href="http://localhost:3000/dashboard" class="test-btn nav" style="text-decoration:none; display:inline-block;">
+        🔗 Navigate to localhost:3000/dashboard
+      </a>
+
+      <p style="font-size: 12px; margin-top: 8px; color: #888;">
+        <strong>SameSite=None:</strong> <span class="badge sent">Cookie Sent</span><br>
+        <strong>SameSite=Lax:</strong> <span class="badge sent">Cookie Sent</span> — top-level navigation is allowed!<br>
+        <strong>SameSite=Strict:</strong> <span class="badge blocked">Cookie Blocked</span> — even navigations are blocked
+      </p>
+    </div>
+
+    <!-- Test 3: Cross-Site POST (form submission) -->
+    <div class="card">
+      <h2>🧪 Test 3: Cross-Site POST (form / fetch)</h2>
+      <p style="font-size: 13px; color: #aaa; margin-bottom: 10px;">
+        Tries to make a cross-site POST to transfer money. This is how CSRF attacks work.
+      </p>
+
+      <button class="test-btn post" onclick="testPost()">
+        💸 Cross-Site Transfer ($1000 to hacker)
+      </button>
+
+      <div class="result-box" id="post-result">Click to test...</div>
+
+      <p style="font-size: 12px; margin-top: 8px; color: #888;">
+        <strong>SameSite=None:</strong> <span class="badge sent">Cookie Sent</span> — transfer succeeds!<br>
+        <strong>SameSite=Lax:</strong> <span class="badge blocked">Cookie Blocked</span> — POST is a sub-request<br>
+        <strong>SameSite=Strict:</strong> <span class="badge blocked">Cookie Blocked</span> — nothing cross-site
+      </p>
+    </div>
+
+    <!-- Test 4: Image Tag (sub-request) -->
+    <div class="card">
+      <h2>🧪 Test 4: Image Tag Request</h2>
+      <p style="font-size: 13px; color: #aaa; margin-bottom: 10px;">
+        Uses <code>&lt;img src="localhost:3000/api/profile"&gt;</code> — a classic way to
+        trigger GET requests silently. The image will "fail" but the server gets the request.
+      </p>
+
+      <button class="test-btn img" onclick="testImage()">
+        🖼️ Send Image Tag Request
+      </button>
+
+      <div class="result-box" id="img-result">Click to test...</div>
+
+      <p style="font-size: 12px; margin-top: 8px; color: #888;">
+        <strong>SameSite=None:</strong> <span class="badge sent">Cookie Sent</span> — server sees you're logged in<br>
+        <strong>SameSite=Lax:</strong> <span class="badge blocked">Cookie Blocked</span> — img is a sub-request<br>
+        <strong>SameSite=Strict:</strong> <span class="badge blocked">Cookie Blocked</span> — blocked entirely
+      </p>
+    </div>
+
+    <!-- Summary Table -->
+    <div class="card">
+      <h2>📊 SameSite Behavior Summary</h2>
+      <table>
+        <tr>
+          <th>Request Type</th>
+          <th>SameSite=None</th>
+          <th>SameSite=Lax</th>
+          <th>SameSite=Strict</th>
+        </tr>
+        <tr>
+          <td>Top-level link (GET)</td>
+          <td><span class="badge sent">Sent</span></td>
+          <td><span class="badge sent">Sent ✅</span></td>
+          <td><span class="badge blocked">Blocked</span></td>
+        </tr>
+        <tr>
+          <td>Form POST</td>
+          <td><span class="badge sent">Sent</span></td>
+          <td><span class="badge blocked">Blocked</span></td>
+          <td><span class="badge blocked">Blocked</span></td>
+        </tr>
+        <tr>
+          <td>fetch() / XHR</td>
+          <td><span class="badge sent">Sent</span></td>
+          <td><span class="badge blocked">Blocked</span></td>
+          <td><span class="badge blocked">Blocked</span></td>
+        </tr>
+        <tr>
+          <td>&lt;img&gt; / &lt;script&gt;</td>
+          <td><span class="badge sent">Sent</span></td>
+          <td><span class="badge blocked">Blocked</span></td>
+          <td><span class="badge blocked">Blocked</span></td>
+        </tr>
+        <tr>
+          <td>iframe</td>
+          <td><span class="badge sent">Sent</span></td>
+          <td><span class="badge blocked">Blocked</span></td>
+          <td><span class="badge blocked">Blocked</span></td>
+        </tr>
+        <tr>
+          <td>window.open (GET)</td>
+          <td><span class="badge sent">Sent</span></td>
+          <td><span class="badge sent">Sent ✅</span></td>
+          <td><span class="badge blocked">Blocked</span></td>
+        </tr>
+      </table>
+
+      <p style="font-size: 12px; margin-top: 12px; color: #888; line-height: 1.5;">
+        💡 <strong>Lax</strong> is the browser default — it blocks most cross-site attacks
+        while still letting users follow links naturally.<br>
+        💡 <strong>Strict</strong> blocks everything — safer but can break "Login with Google" flows.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // Test 1: Cross-site fetch
+    async function testFetch() {
+      const result = document.getElementById('fetch-result');
+      result.textContent = '⏳ Sending cross-site fetch to localhost:3000/api/profile...';
+
+      try {
+        const res = await fetch('http://localhost:3000/api/profile', {
+          credentials: 'include', // Send cookies cross-site
+        });
+        const data = await res.json();
+
+        if (data.error) {
+          result.textContent = `🛡️ SERVER RESPONSE:\n\n${JSON.stringify(data, null, 2)}\n\n→ Cookie was NOT sent (SameSite blocked it)\n→ Server sees you as "not logged in"`;
+          result.style.borderLeft = '3px solid #27ae60';
+        } else {
+          result.textContent = `💀 ATTACK SUCCESSFUL!\n\n${JSON.stringify(data, null, 2)}\n\n→ Cookie was sent cross-site!\n→ Attacker can read your profile data`;
+          result.style.borderLeft = '3px solid #e74c3c';
+        }
+      } catch (err) {
+        result.textContent = `❌ CORS or network error:\n${err.message}\n\n→ This could mean CORS blocked the request\n→ or the server is not running on localhost:3000`;
+        result.style.borderLeft = '3px solid #e67e22';
+      }
+    }
+
+    // Test 3: Cross-site POST
+    async function testPost() {
+      const result = document.getElementById('post-result');
+      result.textContent = '⏳ Sending cross-site POST to localhost:3000/api/transfer...';
+
+      try {
+        const res = await fetch('http://localhost:3000/api/transfer', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ to: 'hacker', amount: 1000 }),
+        });
+        const data = await res.json();
+
+        if (data.error) {
+          result.textContent = `🛡️ TRANSFER BLOCKED!\n\n${JSON.stringify(data, null, 2)}\n\n→ SameSite blocked the session cookie\n→ Server rejected the unauthenticated request`;
+          result.style.borderLeft = '3px solid #27ae60';
+        } else {
+          result.textContent = `💀 TRANSFER SUCCESSFUL!\n\n${JSON.stringify(data, null, 2)}\n\n→ Cookie was sent with the POST request\n→ $1000 transferred to hacker!`;
+          result.style.borderLeft = '3px solid #e74c3c';
+        }
+      } catch (err) {
+        result.textContent = `❌ Error: ${err.message}\n\n→ CORS or network error`;
+        result.style.borderLeft = '3px solid #e67e22';
+      }
+    }
+
+    // Test 4: Image tag request
+    function testImage() {
+      const result = document.getElementById('img-result');
+      result.textContent = '⏳ Creating <img> element with src=localhost:3000/api/profile...\n\nCheck the server terminal for the request log.\nThe image will "fail" because the response is JSON, not an image.\nBut the important thing is whether the cookie was sent!';
+
+      const img = new Image();
+      img.src = 'http://localhost:3000/api/profile?from=img-tag&t=' + Date.now();
+
+      img.onload = () => {
+        result.textContent += '\n\n✅ Image loaded (unexpected for JSON response)';
+      };
+
+      img.onerror = () => {
+        result.textContent += '\n\n📎 Image "failed" (expected — server returned JSON, not an image).\n→ But the REQUEST was still made! Check if cookie was sent.\n→ If SameSite=None: cookie was sent, server saw you logged in\n→ If SameSite=Lax/Strict: cookie was blocked';
+      };
+
+      // Also do a fetch to check
+      setTimeout(async () => {
+        try {
+          const res = await fetch('http://localhost:3000/api/profile', { credentials: 'include' });
+          const data = await res.json();
+          if (data.username) {
+            result.textContent += `\n\n💀 Verification: Cookie IS being sent (user: ${data.username})`;
+            result.style.borderLeft = '3px solid #e74c3c';
+          } else {
+            result.textContent += '\n\n🛡️ Verification: Cookie was NOT sent cross-site';
+            result.style.borderLeft = '3px solid #27ae60';
+          }
+        } catch (e) {
+          result.textContent += '\n\n❌ Could not verify (CORS error)';
+        }
+      }, 500);
+    }
+  </script>
+</body>
+</html>

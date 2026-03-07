@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — Cookie Security Lab</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .card { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 400px; }
+    h1 { text-align: center; margin-bottom: 8px; font-size: 28px; }
+    .subtitle { text-align: center; color: #888; margin-bottom: 24px; font-size: 14px; }
+    label { display: block; margin-bottom: 4px; font-weight: 600; color: #555; font-size: 14px; }
+    input[type="text"], input[type="password"] { width: 100%; padding: 10px 14px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; margin-bottom: 16px; }
+    input:focus { border-color: #4a90d9; outline: none; }
+    button { width: 100%; padding: 12px; background: #4a90d9; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; }
+    button:hover { background: #357abd; }
+    .error { background: #fef2f2; color: #dc2626; padding: 10px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; text-align: center; }
+    .message { background: #eff6ff; color: #2563eb; padding: 10px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; text-align: center; line-height: 1.4; }
+    .creds { text-align: center; margin-top: 16px; font-size: 13px; color: #888; }
+    .creds code { background: #f0f0f0; padding: 2px 6px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🍪 Cookie Lab</h1>
+    <p class="subtitle">Project 6: Cookie Security Experiments</p>
+
+    <% if (error) { %>
+      <div class="error"><%= error %></div>
+    <% } %>
+
+    <% if (typeof message !== 'undefined' && message) { %>
+      <div class="message"><%= message %></div>
+    <% } %>
+
+    <form method="POST" action="/login">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" placeholder="alice" required>
+
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" placeholder="password123" required>
+
+      <button type="submit">Log In</button>
+    </form>
+
+    <p class="creds">
+      Test: <code>alice / password123</code> or <code>bob / password456</code>
+    </p>
+  </div>
+
+  <script>
+    // Auto-fill message from query string
+    const params = new URLSearchParams(window.location.search);
+    const msg = params.get('message');
+    if (msg) {
+      const existing = document.querySelector('.message');
+      if (!existing) {
+        const div = document.createElement('div');
+        div.className = 'message';
+        div.textContent = msg;
+        document.querySelector('form').insertAdjacentElement('beforebegin', div);
+      }
+    }
+  </script>
+</body>
+</html>

