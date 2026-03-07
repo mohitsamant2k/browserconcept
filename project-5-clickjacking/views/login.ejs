@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — MyApp</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    .card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 400px; }
+    h1 { text-align: center; margin-bottom: 8px; color: #333; }
+    .subtitle { text-align: center; color: #777; margin-bottom: 24px; font-size: 14px; }
+    label { display: block; margin-bottom: 6px; font-weight: 600; color: #555; }
+    input[type="text"], input[type="password"] { width: 100%; padding: 10px 14px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; margin-bottom: 16px; transition: border 0.2s; }
+    input:focus { border-color: #4a90d9; outline: none; }
+    button { width: 100%; padding: 12px; background: #4a90d9; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    button:hover { background: #357abd; }
+    .error { background: #ffe0e0; color: #c0392b; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; }
+    .message { background: #e0f0ff; color: #2c3e50; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; }
+    .credentials { background: #f9f9f9; padding: 12px; border-radius: 8px; margin-top: 20px; font-size: 13px; color: #666; }
+    .credentials code { background: #eee; padding: 2px 6px; border-radius: 4px; }
+    .reset-form { text-align: center; margin-top: 12px; }
+    .reset-btn { width: auto; padding: 6px 16px; background: #95a5a6; font-size: 12px; }
+    .reset-btn:hover { background: #7f8c8d; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🏠 MyApp</h1>
+    <p class="subtitle">Log in to your account</p>
+
+    <% if (error) { %>
+      <div class="error">⚠️ <%= error %></div>
+    <% } %>
+
+    <% if (message) { %>
+      <div class="message">ℹ️ <%= message %></div>
+    <% } %>
+
+    <form method="POST" action="/login">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" placeholder="Enter username" required>
+
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" placeholder="Enter password" required>
+
+      <button type="submit">Log In</button>
+    </form>
+
+    <div class="credentials">
+      <strong>Test accounts:</strong><br>
+      <code>alice</code> / <code>password123</code><br>
+      <code>bob</code> / <code>password456</code>
+    </div>
+
+    <form method="POST" action="/reset" class="reset-form">
+      <button type="submit" class="reset-btn">🔄 Reset deleted accounts</button>
+    </form>
+  </div>
+</body>
+</html>

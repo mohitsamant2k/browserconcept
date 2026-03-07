@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account Settings — MyApp</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
+    .container { max-width: 600px; margin: 0 auto; }
+    .header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 16px 24px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+    .header h1 { font-size: 20px; color: #333; }
+    .header a { color: #4a90d9; text-decoration: none; font-weight: 600; }
+    .card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-bottom: 20px; }
+    .card h2 { font-size: 18px; color: #333; margin-bottom: 16px; border-bottom: 2px solid #f0f0f0; padding-bottom: 8px; }
+    label { display: block; margin-bottom: 6px; font-weight: 600; color: #555; font-size: 14px; }
+    select, input[type="text"] { width: 100%; padding: 10px 14px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; margin-bottom: 16px; }
+    .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+    .checkbox-row input { width: auto; }
+    .save-btn { padding: 10px 24px; background: #4a90d9; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }
+    .save-btn:hover { background: #357abd; }
+
+    /* DANGER ZONE */
+    .danger-zone { background: white; border: 2px solid #e74c3c; padding: 24px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+    .danger-zone h2 { color: #e74c3c; border-bottom-color: #f8d7da; }
+    .danger-zone p { color: #666; font-size: 14px; margin-bottom: 16px; line-height: 1.5; }
+    .danger-zone form { text-align: center; } /* Center the delete button for consistent positioning */
+    .delete-btn {
+      padding: 16px 48px;
+      background: #e74c3c;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      /* THIS IS THE BUTTON that the attacker targets */
+    }
+    .delete-btn:hover { background: #c0392b; transform: scale(1.02); }
+    .warning-text { color: #e74c3c; font-size: 12px; margin-top: 8px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1>⚙️ Account Settings</h1>
+      <a href="/dashboard">← Back to Dashboard</a>
+    </div>
+
+    <!-- DANGER ZONE — Delete Account (placed FIRST so it's at a predictable position for clickjacking) -->
+    <div class="danger-zone" id="danger-zone">
+      <h2>⚠️ Danger Zone</h2>
+      <p>
+        Once you delete your account, there is no going back. This will permanently
+        remove your account and all associated data.
+      </p>
+      <form method="POST" action="/delete-account" id="delete-form">
+        <button type="submit" class="delete-btn" id="delete-btn">
+          🗑️ Delete My Account
+        </button>
+      </form>
+      <p class="warning-text">This action cannot be undone!</p>
+    </div>
+
+    <!-- Settings Form -->
+    <div class="card">
+      <h2>🎨 Preferences</h2>
+      <form method="POST" action="/settings">
+        <label for="theme">Theme</label>
+        <select id="theme" name="theme">
+          <option value="light" <%= settings.theme === 'light' ? 'selected' : '' %>>Light</option>
+          <option value="dark" <%= settings.theme === 'dark' ? 'selected' : '' %>>Dark</option>
+        </select>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="notifications" name="notifications" <%= settings.notifications ? 'checked' : '' %>>
+          <label for="notifications" style="margin-bottom: 0;">Enable email notifications</label>
+        </div>
+
+        <button type="submit" class="save-btn">Save Settings</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Frame-buster script (only active when defense is ON) -->
+  <% if (defenses.frameBreaker) { %>
+    <script>
+      if (window.top !== window.self) {
+        console.log('⚠️ Frame-buster: Breaking out of iframe!');
+        window.top.location = window.self.location;
+      }
+    </script>
+  <% } %>
+</body>
+</html>
