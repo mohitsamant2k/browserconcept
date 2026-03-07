@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transfer Result — SecureBank</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .result-card { background: #1e293b; border-radius: 16px; padding: 40px; width: 500px; text-align: center; }
+    .icon { font-size: 64px; margin-bottom: 16px; }
+    h2 { margin-bottom: 12px; font-size: 22px; }
+    p { color: #94a3b8; font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
+    a { display: inline-block; padding: 10px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; }
+    .btn-primary { background: #0ea5e9; color: white; }
+    .success { border: 2px solid #22c55e; }
+    .failure { border: 2px solid #ef4444; }
+  </style>
+</head>
+<body>
+  <div class="result-card <%= success ? 'success' : 'failure' %>">
+    <div class="icon"><%= success ? '✅' : '❌' %></div>
+    <h2 style="color: <%= success ? '#22c55e' : '#ef4444' %>;">
+      <%= success ? 'Transfer Successful!' : 'Transfer Failed' %>
+    </h2>
+    <p><%= message %></p>
+    <a href="/dashboard" class="btn-primary">← Back to Dashboard</a>
+  </div>
+</body>
+</html>

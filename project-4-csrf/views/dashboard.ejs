@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — SecureBank</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; }
+    .navbar { background: #1e293b; padding: 16px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
+    .navbar h1 { color: #38bdf8; font-size: 20px; }
+    .navbar .user-info { display: flex; align-items: center; gap: 16px; }
+    .navbar .user-info span { color: #94a3b8; font-size: 14px; }
+    .navbar a { color: #94a3b8; text-decoration: none; font-size: 14px; padding: 6px 12px; border: 1px solid #334155; border-radius: 6px; }
+    .navbar a:hover { border-color: #ef4444; color: #ef4444; }
+    .container { max-width: 900px; margin: 0 auto; padding: 30px 40px; }
+    .balance-card { background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #334155; border-radius: 16px; padding: 30px; text-align: center; margin-bottom: 24px; }
+    .balance-card .amount { font-size: 48px; font-weight: bold; color: #22c55e; }
+    .balance-card .label { color: #64748b; font-size: 14px; margin-top: 4px; }
+    .section-title { color: #38bdf8; font-size: 18px; margin: 24px 0 12px 0; border-bottom: 1px solid #334155; padding-bottom: 8px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; }
+    .card h3 { color: #e2e8f0; margin-bottom: 12px; font-size: 16px; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; color: #94a3b8; font-size: 13px; margin-bottom: 4px; }
+    .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #334155; border-radius: 8px; background: #0f172a; color: #e2e8f0; font-size: 14px; }
+    .form-group input:focus, .form-group select:focus { outline: none; border-color: #38bdf8; }
+    button { padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold; }
+    .btn-primary { background: #0ea5e9; color: white; width: 100%; }
+    .btn-danger { background: #ef4444; color: white; }
+    .btn-safe { background: #22c55e; color: white; }
+    .btn-toggle { padding: 6px 14px; font-size: 12px; }
+    code { background: #334155; padding: 2px 6px; border-radius: 4px; font-size: 13px; color: #fbbf24; }
+    .defense-panel { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+    .defense-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #0f172a; }
+    .defense-item:last-child { border-bottom: none; }
+    .defense-name { font-size: 14px; }
+    .defense-desc { font-size: 12px; color: #64748b; }
+    .defense-status { font-size: 12px; font-weight: bold; }
+    .status-on { color: #22c55e; }
+    .status-off { color: #ef4444; }
+    .transaction { padding: 8px 12px; border-radius: 8px; margin: 4px 0; font-size: 13px; display: flex; justify-content: space-between; }
+    .tx-sent { background: #4c1d2e; border: 1px solid #ef4444; }
+    .tx-received { background: #064e3b; border: 1px solid #22c55e; }
+    .concept-box { background: #1e293b; border-left: 3px solid #fbbf24; padding: 16px 20px; margin: 16px 0; border-radius: 0 8px 8px 0; }
+    .concept-box h3 { color: #fbbf24; font-size: 14px; margin-bottom: 6px; }
+    .concept-box p, .concept-box li { color: #94a3b8; font-size: 13px; line-height: 1.6; }
+    .concept-box ul { padding-left: 16px; }
+    .attacker-link { display: inline-block; background: #7c3aed; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; margin: 8px 0; }
+    .attacker-link:hover { background: #6d28d9; }
+    .footer { margin-top: 40px; padding: 20px 40px; border-top: 1px solid #334155; color: #64748b; font-size: 13px; text-align: center; }
+    .warning-banner { background: #4c1d2e; border: 1px solid #ef4444; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #fca5a5; }
+    .safe-banner { background: #064e3b; border: 1px solid #059669; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #6ee7b7; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <h1>🏦 SecureBank</h1>
+    <div class="user-info">
+      <span>👤 <%= username %></span>
+      <a href="/logout">Logout</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <!-- BALANCE -->
+    <div class="balance-card">
+      <div class="amount">$<%= balance.toLocaleString() %></div>
+      <div class="label">Available Balance</div>
+    </div>
+
+    <% const anyDefenseOn = defenses.csrfToken || defenses.sameSiteCookie || defenses.originCheck || defenses.doubleSubmit; %>
+
+    <% if (!anyDefenseOn) { %>
+      <div class="warning-banner">
+        🔴 All CSRF defenses are OFF — your bank is vulnerable! Visit
+        <a href="http://localhost:4000" target="_blank" style="color: #fbbf24; font-weight: bold;">http://localhost:4000</a>
+        to see the attack.
+      </div>
+    <% } else { %>
+      <div class="safe-banner">
+        🛡️ Some defenses are active — try the attack again at
+        <a href="http://localhost:4000" target="_blank" style="color: #fbbf24;">http://localhost:4000</a>
+        to see them block it.
+      </div>
+    <% } %>
+
+    <!-- DEFENSE PANEL -->
+    <div class="defense-panel">
+      <h3 style="color: #38bdf8; margin-bottom: 12px;">🛡️ CSRF Defense Controls</h3>
+
+      <div class="defense-item">
+        <div>
+          <div class="defense-name">🔑 CSRF Token</div>
+          <div class="defense-desc">Random token in form + session — attacker can't guess it</div>
+        </div>
+        <form action="/toggle-defense" method="POST" style="display: inline;">
+          <input type="hidden" name="defense" value="csrfToken" />
+          <button class="btn-toggle <%= defenses.csrfToken ? 'btn-safe' : 'btn-danger' %>">
+            <%= defenses.csrfToken ? '✅ ON' : '❌ OFF' %>
+          </button>
+        </form>
+      </div>
+
+      <div class="defense-item">
+        <div>
+          <div class="defense-name">🍪 SameSite=Strict Cookie</div>
+          <div class="defense-desc">Browser won't send cookies on cross-site requests (re-login needed)</div>
+        </div>
+        <form action="/toggle-defense" method="POST" style="display: inline;">
+          <input type="hidden" name="defense" value="sameSiteCookie" />
+          <button class="btn-toggle <%= defenses.sameSiteCookie ? 'btn-safe' : 'btn-danger' %>">
+            <%= defenses.sameSiteCookie ? '✅ ON' : '❌ OFF' %>
+          </button>
+        </form>
+      </div>
+
+      <div class="defense-item">
+        <div>
+          <div class="defense-name">🌐 Origin/Referer Check</div>
+          <div class="defense-desc">Reject requests where Origin header ≠ our domain</div>
+        </div>
+        <form action="/toggle-defense" method="POST" style="display: inline;">
+          <input type="hidden" name="defense" value="originCheck" />
+          <button class="btn-toggle <%= defenses.originCheck ? 'btn-safe' : 'btn-danger' %>">
+            <%= defenses.originCheck ? '✅ ON' : '❌ OFF' %>
+          </button>
+        </form>
+      </div>
+
+      <div class="defense-item">
+        <div>
+          <div class="defense-name">🍪🔑 Double-Submit Cookie</div>
+          <div class="defense-desc">Token in both cookie AND form — attacker can send cookie but can't read it</div>
+        </div>
+        <form action="/toggle-defense" method="POST" style="display: inline;">
+          <input type="hidden" name="defense" value="doubleSubmit" />
+          <button class="btn-toggle <%= defenses.doubleSubmit ? 'btn-safe' : 'btn-danger' %>">
+            <%= defenses.doubleSubmit ? '✅ ON' : '❌ OFF' %>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- TRANSFER FORM -->
+      <div class="card">
+        <h3>💸 Transfer Money</h3>
+        <form action="/transfer" method="POST">
+          <!-- CSRF Token (hidden field — only present when defense is on) -->
+          <% if (defenses.csrfToken) { %>
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+            <p style="color: #22c55e; font-size: 11px; margin-bottom: 8px;">🔑 CSRF token embedded in form</p>
+          <% } %>
+
+          <!-- Double-Submit Token -->
+          <% if (defenses.doubleSubmit) { %>
+            <input type="hidden" name="_csrf_double" value="<%= doubleSubmitToken %>" />
+            <p style="color: #22c55e; font-size: 11px; margin-bottom: 8px;">🍪 Double-submit token embedded</p>
+          <% } %>
+
+          <div class="form-group">
+            <label>Recipient</label>
+            <select name="to">
+              <% if (username === 'alice') { %>
+                <option value="bob">Bob</option>
+              <% } else { %>
+                <option value="alice">Alice</option>
+              <% } %>
+              <option value="hacker">Hacker (attacker)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Amount ($)</label>
+            <input type="number" name="amount" min="1" max="<%= balance %>" value="100" />
+          </div>
+          <button type="submit" class="btn-primary">Transfer</button>
+        </form>
+      </div>
+
+      <!-- TRANSACTION HISTORY -->
+      <div class="card">
+        <h3>📜 Transaction History</h3>
+        <% if (transactions.length === 0) { %>
+          <p style="color: #64748b; font-size: 13px;">No transactions yet.</p>
+        <% } else { %>
+          <% transactions.slice(-10).reverse().forEach(tx => { %>
+            <div class="transaction <%= tx.type === 'sent' ? 'tx-sent' : 'tx-received' %>">
+              <span>
+                <%= tx.type === 'sent' ? '↗️ Sent to ' + tx.to : '↙️ From ' + tx.from %>
+              </span>
+              <span>
+                <%= tx.type === 'sent' ? '-' : '+' %>$<%= tx.amount %> (<%= tx.time %>)
+              </span>
+            </div>
+          <% }) %>
+        <% } %>
+        <form action="/reset" method="POST" style="margin-top: 12px;">
+          <button class="btn-danger" style="width: 100%; font-size: 12px;">🔄 Reset Balances</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ATTACK LINK -->
+    <div style="text-align: center; margin: 24px 0;">
+      <p style="color: #94a3b8; margin-bottom: 8px;">Ready to see the CSRF attack?</p>
+      <a href="http://localhost:4000" target="_blank" class="attacker-link">
+        😈 Visit Attacker Site (localhost:4000)
+      </a>
+    </div>
+
+    <!-- CONCEPT BOX -->
+    <div class="concept-box">
+      <h3>🔴 CSRF — How it works</h3>
+      <p>
+        CSRF = "Cross-Site Request Forgery" = tricking your browser into making requests you didn't intend.<br><br>
+        <strong>The attack chain:</strong><br>
+        1. You log into <code>bank.com</code> — browser stores your session cookie<br>
+        2. You visit <code>evil.com</code> (attacker's site) — maybe clicked a link in an email<br>
+        3. <code>evil.com</code> has a hidden form that auto-submits <code>POST /transfer</code> to <code>bank.com</code><br>
+        4. Your browser sends the request WITH your cookies (it always does, automatically)<br>
+        5. <code>bank.com</code> sees valid session cookie → thinks it's you → processes the transfer<br><br>
+
+        <strong>Key insight:</strong> The browser ALWAYS sends cookies to the domain they belong to,
+        even if the request was initiated by a different site. CSRF exploits this behavior.<br><br>
+
+        <strong>4 defenses you can try:</strong>
+      </p>
+      <ul>
+        <li><strong>CSRF Token:</strong> Server generates a random token → puts it in the form → validates it on submit. Attacker can't guess the token.</li>
+        <li><strong>SameSite Cookie:</strong> Tell the browser "don't send this cookie on cross-site requests." Cookie stays home.</li>
+        <li><strong>Origin Check:</strong> Server checks the <code>Origin</code> header — rejects requests from foreign domains.</li>
+        <li><strong>Double-Submit:</strong> Token in cookie + form field must match. Attacker can send cookie but can't <em>read</em> it (SOP blocks that) to copy into the form.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer">
+    🏦 Project 4: CSRF Attack & Defense
+  </div>
+</body>
+</html>

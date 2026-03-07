@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSRF Blocked! — SecureBank</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .error-card { background: #1e293b; border: 2px solid #ef4444; border-radius: 16px; padding: 40px; width: 600px; text-align: center; }
+    .icon { font-size: 64px; margin-bottom: 16px; }
+    h2 { color: #ef4444; margin-bottom: 12px; font-size: 22px; }
+    .detail { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 16px; margin: 16px 0; text-align: left; color: #94a3b8; font-size: 13px; line-height: 1.6; }
+    .defense-badges { margin: 16px 0; }
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; margin: 2px; }
+    .badge-on { background: #22c55e20; color: #4ade80; border: 1px solid #22c55e; }
+    .badge-off { background: #33415520; color: #64748b; border: 1px solid #334155; }
+    a { display: inline-block; padding: 10px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; background: #0ea5e9; color: white; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <div class="error-card">
+    <div class="icon">🛡️</div>
+    <h2><%= message %></h2>
+    <div class="detail"><%= detail %></div>
+
+    <div class="defense-badges">
+      <span class="badge <%= defenses.csrfToken ? 'badge-on' : 'badge-off' %>">
+        🔑 CSRF Token: <%= defenses.csrfToken ? 'ON' : 'OFF' %>
+      </span>
+      <span class="badge <%= defenses.sameSiteCookie ? 'badge-on' : 'badge-off' %>">
+        🍪 SameSite: <%= defenses.sameSiteCookie ? 'ON' : 'OFF' %>
+      </span>
+      <span class="badge <%= defenses.originCheck ? 'badge-on' : 'badge-off' %>">
+        🌐 Origin Check: <%= defenses.originCheck ? 'ON' : 'OFF' %>
+      </span>
+      <span class="badge <%= defenses.doubleSubmit ? 'badge-on' : 'badge-off' %>">
+        🍪🔑 Double-Submit: <%= defenses.doubleSubmit ? 'ON' : 'OFF' %>
+      </span>
+    </div>
+
+    <a href="/dashboard">← Back to Dashboard</a>
+  </div>
+</body>
+</html>
