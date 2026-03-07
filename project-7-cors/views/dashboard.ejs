@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌐 CORS Playground</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
+    .container { max-width: 1100px; margin: 0 auto; }
+
+    .header { background: white; padding: 16px 24px; border-radius: 12px; margin-bottom: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { font-size: 22px; }
+    .header .info { font-size: 13px; color: #888; }
+
+    /* CORS Mode Selector */
+    .mode-card { background: white; padding: 20px 24px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-bottom: 16px; }
+    .mode-card h2 { font-size: 16px; margin-bottom: 12px; border-bottom: 2px solid #f0f0f0; padding-bottom: 8px; }
+    .mode-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .mode-btn { padding: 10px 8px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; cursor: pointer; text-align: center; font-size: 12px; line-height: 1.4; transition: all 0.2s; }
+    .mode-btn:hover { border-color: #4a90d9; background: #f0f7ff; }
+    .mode-btn.active { border-color: #4a90d9; background: #4a90d9; color: white; font-weight: 600; }
+    .mode-btn.danger.active { border-color: #e74c3c; background: #e74c3c; }
+    .mode-number { font-size: 18px; font-weight: 700; display: block; margin-bottom: 4px; }
+
+    /* Current mode display */
+    .current-mode { margin-top: 12px; padding: 12px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; }
+    .current-mode.safe { background: #f0fdf4; color: #16a34a; border: 1px solid #86efac; }
+    .current-mode.warn { background: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; }
+    .current-mode.danger { background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; }
+
+    /* Test grid */
+    .test-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 768px) { .test-grid, .mode-grid { grid-template-columns: 1fr; } }
+
+    .test-card { background: white; padding: 18px 22px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+    .test-card h3 { font-size: 15px; margin-bottom: 4px; }
+    .test-card .desc { font-size: 12px; color: #888; margin-bottom: 12px; line-height: 1.4; }
+    .test-card code { background: #f0f0f0; padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+
+    .test-btn { padding: 8px 16px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; color: white; margin-right: 6px; margin-bottom: 6px; }
+    .test-btn.get { background: #27ae60; }
+    .test-btn.get:hover { background: #219a52; }
+    .test-btn.post { background: #e67e22; }
+    .test-btn.post:hover { background: #d35400; }
+    .test-btn.delete { background: #e74c3c; }
+    .test-btn.delete:hover { background: #c0392b; }
+    .test-btn.custom { background: #9b59b6; }
+    .test-btn.custom:hover { background: #8e44ad; }
+
+    /* Result box */
+    .result-box { margin-top: 10px; padding: 12px 14px; background: #1e1e1e; color: #d4d4d4; border-radius: 8px; font-family: 'Consolas', monospace; font-size: 12px; min-height: 60px; white-space: pre-wrap; word-break: break-all; line-height: 1.5; max-height: 300px; overflow-y: auto; }
+
+    /* Flow diagram */
+    .flow-card { background: white; padding: 20px 24px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-top: 16px; }
+    .flow-card h2 { font-size: 16px; margin-bottom: 12px; border-bottom: 2px solid #f0f0f0; padding-bottom: 8px; }
+    .flow-steps { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-bottom: 12px; }
+    .flow-step { padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; }
+    .flow-step.browser { background: #dbeafe; color: #1d4ed8; }
+    .flow-step.server { background: #dcfce7; color: #16a34a; }
+    .flow-step.blocked { background: #fef2f2; color: #dc2626; }
+    .flow-step.preflight { background: #fef3c7; color: #d97706; }
+    .flow-arrow { font-size: 18px; color: #aaa; }
+    .flow-log { padding: 12px; background: #1e1e1e; color: #d4d4d4; border-radius: 8px; font-family: 'Consolas', monospace; font-size: 12px; min-height: 40px; white-space: pre-wrap; line-height: 1.5; }
+
+    /* Explanation table */
+    .explain-card { background: white; padding: 20px 24px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-top: 16px; }
+    .explain-card h2 { font-size: 16px; margin-bottom: 12px; border-bottom: 2px solid #f0f0f0; padding-bottom: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 8px 10px; background: #f8f9fa; border-bottom: 2px solid #e0e0e0; color: #555; font-size: 12px; }
+    td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+    .badge.pass { background: rgba(39,174,96,0.15); color: #27ae60; }
+    .badge.fail { background: rgba(231,76,60,0.15); color: #e74c3c; }
+    .badge.warn { background: rgba(241,196,15,0.15); color: #d4a00a; }
+
+    .reminder { background: #fff3cd; border: 1px solid #ffc107; padding: 10px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; }
+    .reminder a { color: #d35400; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🌐 CORS Playground</h1>
+      <div class="info">Frontend: localhost:4000 → API: localhost:3000</div>
+    </div>
+
+    <div class="reminder">
+      ⚠️ First, <a href="http://localhost:3000/login" target="_blank">login at localhost:3000</a>
+      to get a session cookie, then come back here to test CORS.
+    </div>
+
+    <!-- CORS Mode Selector -->
+    <div class="mode-card">
+      <h2>🔧 CORS Configuration Mode</h2>
+      <div class="mode-grid">
+        <button class="mode-btn active" data-mode="0" onclick="setMode(0)">
+          <span class="mode-number">0</span>
+          No CORS headers
+        </button>
+        <button class="mode-btn" data-mode="1" onclick="setMode(1)">
+          <span class="mode-number">1</span>
+          Allow-Origin: *
+        </button>
+        <button class="mode-btn" data-mode="2" onclick="setMode(2)">
+          <span class="mode-number">2</span>
+          Specific origin + credentials
+        </button>
+        <button class="mode-btn" data-mode="3" onclick="setMode(3)">
+          <span class="mode-number">3</span>
+          Full preflight support
+        </button>
+        <button class="mode-btn danger" data-mode="4" onclick="setMode(4)">
+          <span class="mode-number">4</span>
+          ⚠️ Reflect any origin
+        </button>
+      </div>
+      <div class="current-mode safe" id="current-mode">
+        Mode 0: No CORS headers — all cross-origin requests will be blocked by the browser
+      </div>
+    </div>
+
+    <!-- Test Cards -->
+    <div class="test-grid">
+      <!-- Test 1: Simple GET (public) -->
+      <div class="test-card">
+        <h3>🟢 Test 1: Simple GET (public)</h3>
+        <p class="desc">
+          <code>GET /api/public</code> — No auth needed, no custom headers.<br>
+          This is a "simple request" — no preflight required.
+        </p>
+        <button class="test-btn get" onclick="testSimpleGet()">Send GET /api/public</button>
+        <div class="result-box" id="result-simple-get">Click to test...</div>
+      </div>
+
+      <!-- Test 2: Credentialed GET (private) -->
+      <div class="test-card">
+        <h3>🔒 Test 2: Credentialed GET (private)</h3>
+        <p class="desc">
+          <code>GET /api/private</code> with <code>credentials: 'include'</code>.<br>
+          Sends session cookie. Requires <code>Allow-Credentials: true</code>.
+        </p>
+        <button class="test-btn get" onclick="testCredentialedGet()">Send GET /api/private (with cookie)</button>
+        <div class="result-box" id="result-cred-get">Click to test...</div>
+      </div>
+
+      <!-- Test 3: POST with JSON (preflight) -->
+      <div class="test-card">
+        <h3>📝 Test 3: POST with JSON (triggers preflight)</h3>
+        <p class="desc">
+          <code>POST /api/data</code> with <code>Content-Type: application/json</code>.<br>
+          JSON content type triggers a preflight OPTIONS request first!
+        </p>
+        <button class="test-btn post" onclick="testPostJson()">Send POST /api/data</button>
+        <div class="result-box" id="result-post">Click to test...</div>
+      </div>
+
+      <!-- Test 4: DELETE (preflight + destructive) -->
+      <div class="test-card">
+        <h3>🗑️ Test 4: DELETE (preflight + destructive)</h3>
+        <p class="desc">
+          <code>DELETE /api/data/1</code> — deletes item #1.<br>
+          DELETE is never "simple" — always triggers preflight.
+        </p>
+        <button class="test-btn delete" onclick="testDelete()">Send DELETE /api/data/1</button>
+        <div class="result-box" id="result-delete">Click to test...</div>
+      </div>
+
+      <!-- Test 5: Custom Header -->
+      <div class="test-card">
+        <h3>🎯 Test 5: Custom Header (X-Custom-Header)</h3>
+        <p class="desc">
+          <code>GET /api/public</code> with <code>X-Custom-Header: test</code>.<br>
+          Custom headers ALWAYS trigger preflight.
+        </p>
+        <button class="test-btn custom" onclick="testCustomHeader()">Send GET with X-Custom-Header</button>
+        <div class="result-box" id="result-custom">Click to test...</div>
+      </div>
+
+      <!-- Test 6: Read Response Headers -->
+      <div class="test-card">
+        <h3>📋 Test 6: Read Response Headers</h3>
+        <p class="desc">
+          Try to read the API's response headers from JavaScript.<br>
+          Without <code>Access-Control-Expose-Headers</code>, only "simple" headers are readable.
+        </p>
+        <button class="test-btn get" onclick="testReadHeaders()">Read Response Headers</button>
+        <div class="result-box" id="result-headers">Click to test...</div>
+      </div>
+    </div>
+
+    <!-- Request Flow Diagram -->
+    <div class="flow-card">
+      <h2>🔄 Request Flow Visualizer</h2>
+      <p style="font-size: 13px; color: #888; margin-bottom: 12px;">
+        Run any test above — the full request → preflight → response flow appears here.
+      </p>
+      <div id="flow-steps" class="flow-steps">
+        <div class="flow-step browser">Browser</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step" style="background:#f0f0f0; color:#888;">Waiting for test...</div>
+      </div>
+      <div class="flow-log" id="flow-log">Run a test to see the flow...</div>
+    </div>
+
+    <!-- Explanation Table -->
+    <div class="explain-card">
+      <h2>📊 What Works at Each CORS Mode?</h2>
+      <table>
+        <tr>
+          <th>Request Type</th>
+          <th>Mode 0<br><small>No CORS</small></th>
+          <th>Mode 1<br><small>Origin: *</small></th>
+          <th>Mode 2<br><small>Specific + Creds</small></th>
+          <th>Mode 3<br><small>Full Preflight</small></th>
+          <th>Mode 4<br><small>⚠️ Reflect</small></th>
+        </tr>
+        <tr>
+          <td>Simple GET (no cookie)</td>
+          <td><span class="badge fail">Blocked</span></td>
+          <td><span class="badge pass">Works</span></td>
+          <td><span class="badge pass">Works</span></td>
+          <td><span class="badge pass">Works</span></td>
+          <td><span class="badge pass">Works</span></td>
+        </tr>
+        <tr>
+          <td>GET with cookie</td>
+          <td><span class="badge fail">Blocked</span></td>
+          <td><span class="badge fail">Blocked</span></td>
+          <td><span class="badge pass">Works</span></td>
+          <td><span class="badge pass">Works</span></td>
+          <td><span class="badge warn">Works ⚠️</span></td>
+        </tr>
+        <tr>
+          <td>POST (JSON body)</td>
+          <td><span class="badge fail">Blocked</span></td>
+          <td><span class="badge fail">Blocked</span></td>
+          <td><span class="badge fail">Blocked</span></td>
+          <td><span class="badge pass">Works</span></td>
+          <td><span class="badge warn">Works ⚠️</span></td>
+        </tr>
+        <tr>
+          <td>DELETE</td>
+          <td><span class="badge fail">Blocked</span></td>
+          <td><span class="badge fail">Blocked</span></td>
+          <td><span class="badge fail">Blocked</span></td>
+          <td><span class="badge pass">Works</span></td>
+          <td><span class="badge warn">Works ⚠️</span></td>
+        </tr>
+        <tr>
+          <td>Custom headers</td>
+          <td><span class="badge fail">Blocked</span></td>
+          <td><span class="badge fail">Blocked</span></td>
+          <td><span class="badge fail">Blocked</span></td>
+          <td><span class="badge pass">Works</span></td>
+          <td><span class="badge warn">Works ⚠️</span></td>
+        </tr>
+      </table>
+      <p style="font-size: 12px; color: #888; margin-top: 10px;">
+        <span class="badge warn">⚠️</span> Mode 4 "works" for ANY website — that's the danger!
+        Any attacker site can make authenticated requests to your API.
+      </p>
+    </div>
+
+    <!-- Why Preflight Exists -->
+    <div class="explain-card">
+      <h2>❓ Why Does Preflight Exist?</h2>
+      <div style="font-size: 13px; line-height: 1.7; color: #555;">
+        <p><strong>Problem:</strong> Before CORS existed, a <code>DELETE /api/data/1</code> from an evil site
+        would actually reach the server and delete the item — even without CORS headers!
+        The browser would send the request, the server would execute it, and THEN the browser would block
+        the <em>response</em>. The damage is already done.</p>
+
+        <p style="margin-top: 10px;"><strong>Solution:</strong> For "dangerous" requests (non-simple methods, custom headers, JSON content-type),
+        the browser sends a preflight <code>OPTIONS</code> request first:
+        </p>
+
+        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin: 10px 0; font-family: monospace; font-size: 12px;">
+          Browser → Server: "Hey, can my origin send a DELETE?"<br>
+          <code>OPTIONS /api/data/1</code><br>
+          <code>Origin: http://evil.com</code><br>
+          <code>Access-Control-Request-Method: DELETE</code><br>
+          <br>
+          Server → Browser: "No, I don't allow that origin."<br>
+          <code>(no Access-Control-Allow-Origin header)</code><br>
+          <br>
+          Browser: "OK, I won't send the actual DELETE."
+        </div>
+
+        <p><strong>Key insight:</strong> The preflight is a <em>safety check</em> that runs BEFORE the real request.
+        If the server doesn't explicitly allow it, the browser never sends the dangerous request at all.</p>
+
+        <p style="margin-top: 10px;"><strong>Simple requests</strong> (GET, POST with form data) don't need preflight because
+        they could already be sent by HTML forms before CORS existed — old servers already handle them.
+        But JSON POSTs, DELETEs, and custom headers are NEW — so they get the preflight safety check.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = 'http://localhost:3000';
+    let currentMode = 0;
+
+    // ============================================
+    // CORS Mode Control
+    // ============================================
+    async function setMode(mode) {
+      try {
+        // This request goes same-origin to our frontend proxy? No — 
+        // We send directly to API. Mode 0 would block this!
+        // So we use a different approach: make the mode-change request
+        // that works regardless of CORS mode
+        const res = await fetch(API + '/api/cors-mode', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode }),
+        });
+
+        // If CORS blocks this, we still update UI optimistically
+        currentMode = mode;
+        updateModeUI();
+      } catch (err) {
+        // CORS might block the mode change when mode=0
+        // In that case, tell user to set mode from API server
+        if (mode === 0) {
+          currentMode = 0;
+          updateModeUI();
+          console.log('Mode set to 0 (CORS blocks the confirmation)');
+        } else {
+          alert('Could not change CORS mode. The API may need to be in mode 3+ first.');
+        }
+      }
+    }
+
+    function updateModeUI() {
+      document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.mode) === currentMode);
+      });
+
+      const display = document.getElementById('current-mode');
+      const descriptions = {
+        0: ['Mode 0: No CORS headers — all cross-origin requests blocked by browser', 'safe'],
+        1: ['Mode 1: Allow-Origin: * — simple GET works, credentials fail', 'warn'],
+        2: ['Mode 2: Specific origin + credentials — credentialed requests work', 'safe'],
+        3: ['Mode 3: Full preflight — POST/DELETE with JSON and custom headers work', 'safe'],
+        4: ['Mode 4: ⚠️ DANGER — Reflecting any origin! Any website can access this API!', 'danger'],
+      };
+      const [text, cls] = descriptions[currentMode];
+      display.textContent = text;
+      display.className = 'current-mode ' + cls;
+    }
+
+    // Load current mode on page load
+    (async function loadMode() {
+      try {
+        const res = await fetch(API + '/api/cors-mode');
+        const data = await res.json();
+        currentMode = data.mode;
+        updateModeUI();
+      } catch (e) {
+        console.log('Could not fetch current mode (CORS may be blocking)');
+      }
+    })();
+
+    // ============================================
+    // Flow Visualizer
+    // ============================================
+    function showFlow(steps, log) {
+      const flowEl = document.getElementById('flow-steps');
+      const logEl = document.getElementById('flow-log');
+
+      flowEl.innerHTML = steps.map((s, i) => {
+        const html = `<div class="flow-step ${s.type}">${s.label}</div>`;
+        return i < steps.length - 1 ? html + '<span class="flow-arrow">→</span>' : html;
+      }).join('');
+
+      logEl.textContent = log;
+    }
+
+    // ============================================
+    // Test Functions
+    // ============================================
+
+    // Test 1: Simple GET
+    async function testSimpleGet() {
+      const result = document.getElementById('result-simple-get');
+      result.textContent = '⏳ Sending GET /api/public (no credentials)...';
+
+      const flowSteps = [
+        { label: '🖥️ Browser (localhost:4000)', type: 'browser' },
+        { label: 'GET /api/public', type: 'browser' },
+      ];
+      let flowLog = `→ fetch("${API}/api/public")\n→ No credentials, no custom headers = SIMPLE request\n→ No preflight needed\n`;
+
+      try {
+        const res = await fetch(API + '/api/public');
+        const data = await res.json();
+
+        flowSteps.push({ label: '✅ Response received', type: 'server' });
+        flowLog += `→ Server responded ${res.status}\n→ CORS header: ${res.headers.get('access-control-allow-origin') || '(none)'}\n→ Browser allowed JavaScript to read the response ✅`;
+
+        result.textContent = `✅ SUCCESS (${res.status})\n\n${JSON.stringify(data, null, 2)}`;
+        result.style.borderLeft = '3px solid #27ae60';
+      } catch (err) {
+        flowSteps.push({ label: '❌ CORS Blocked', type: 'blocked' });
+        flowLog += `→ Browser BLOCKED the response!\n→ The server DID receive the request and respond\n→ But browser refuses to show the response to JavaScript\n→ Reason: No Access-Control-Allow-Origin header`;
+
+        result.textContent = `❌ CORS ERROR\n\n${err.message}\n\n→ The browser blocked this cross-origin request\n→ The server DID receive it, but the browser won't show you the response\n→ Fix: Server needs to send Access-Control-Allow-Origin header`;
+        result.style.borderLeft = '3px solid #e74c3c';
+      }
+
+      showFlow(flowSteps, flowLog);
+    }
+
+    // Test 2: Credentialed GET
+    async function testCredentialedGet() {
+      const result = document.getElementById('result-cred-get');
+      result.textContent = '⏳ Sending GET /api/private (with credentials)...';
+
+      const flowSteps = [
+        { label: '🖥️ Browser', type: 'browser' },
+        { label: 'GET /api/private + 🍪 cookie', type: 'browser' },
+      ];
+      let flowLog = `→ fetch("${API}/api/private", { credentials: 'include' })\n→ credentials: 'include' tells browser to send cookies\n`;
+
+      try {
+        const res = await fetch(API + '/api/private', {
+          credentials: 'include',
+        });
+        const data = await res.json();
+
+        if (data.error) {
+          flowSteps.push({ label: '⚠️ 401 No Cookie', type: 'blocked' });
+          flowLog += `→ Server responded but said "not authenticated"\n→ Cookie was not sent (browser blocked it)\n→ Allow-Credentials: true required for cookies`;
+          result.textContent = `⚠️ RESPONSE RECEIVED but not authenticated:\n\n${JSON.stringify(data, null, 2)}\n\n→ The cookie was not sent cross-origin\n→ Server needs: Access-Control-Allow-Credentials: true\n→ And Allow-Origin must be specific (NOT *)`;
+          result.style.borderLeft = '3px solid #e67e22';
+        } else {
+          flowSteps.push({ label: '✅ Private data!', type: 'server' });
+          flowLog += `→ Cookie WAS sent cross-origin!\n→ Server authenticated you and returned private data\n→ Allow-Origin: specific + Allow-Credentials: true`;
+          result.textContent = `✅ SUCCESS — Private data accessed cross-origin!\n\n${JSON.stringify(data, null, 2)}`;
+          result.style.borderLeft = '3px solid #27ae60';
+        }
+      } catch (err) {
+        flowSteps.push({ label: '❌ CORS Blocked', type: 'blocked' });
+
+        if (currentMode === 1) {
+          flowLog += `→ BLOCKED! Allow-Origin: * does NOT work with credentials!\n→ The browser REFUSES to send cookies when origin is "*"\n→ Why? Because * means "any site" — that would be insecure\n→ Fix: Set Allow-Origin to the specific origin + Allow-Credentials: true`;
+        } else {
+          flowLog += `→ Browser BLOCKED — no CORS headers, or credentials not allowed`;
+        }
+
+        result.textContent = `❌ CORS ERROR\n\n${err.message}\n\n${currentMode === 1 ? '⚠️ KEY LEARNING: Allow-Origin: * CANNOT be used with credentials!\nThe browser requires a SPECIFIC origin when cookies are involved.\nReason: Allowing * + credentials = any site steals your cookies!' : '→ Server needs: Allow-Origin (specific) + Allow-Credentials: true'}`;
+        result.style.borderLeft = '3px solid #e74c3c';
+      }
+
+      showFlow(flowSteps, flowLog);
+    }
+
+    // Test 3: POST with JSON
+    async function testPostJson() {
+      const result = document.getElementById('result-post');
+      result.textContent = '⏳ Sending POST /api/data (JSON body)...';
+
+      const flowSteps = [
+        { label: '🖥️ Browser', type: 'browser' },
+      ];
+      let flowLog = `→ fetch("${API}/api/data", { method: 'POST', headers: { 'Content-Type': 'application/json' }, ... })\n→ Content-Type: application/json is NOT a "simple" header!\n→ Browser MUST send a preflight OPTIONS request first\n`;
+
+      flowSteps.push({ label: '✈️ OPTIONS preflight', type: 'preflight' });
+      flowLog += `\n--- PREFLIGHT ---\n→ OPTIONS /api/data\n→ "Can localhost:4000 send POST with Content-Type: application/json?"\n`;
+
+      try {
+        const res = await fetch(API + '/api/data', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: 'New Report', content: 'Created from CORS playground' }),
+        });
+        const data = await res.json();
+
+        flowSteps.push({ label: '✅ Preflight OK', type: 'server' });
+        flowSteps.push({ label: 'POST /api/data', type: 'browser' });
+        flowSteps.push({ label: '✅ Created!', type: 'server' });
+        flowLog += `→ Server said: "Yes, allowed!"\n\n--- ACTUAL REQUEST ---\n→ POST /api/data sent with JSON body + cookie\n→ Server created the item!`;
+
+        result.textContent = `✅ SUCCESS — Item created!\n\n${JSON.stringify(data, null, 2)}`;
+        result.style.borderLeft = '3px solid #27ae60';
+      } catch (err) {
+        flowSteps.push({ label: '❌ Preflight DENIED', type: 'blocked' });
+        flowLog += `→ Server did NOT allow it (no preflight headers)\n→ Browser NEVER sent the actual POST!\n→ The data is SAFE — the server never saw the POST`;
+
+        result.textContent = `❌ CORS ERROR (Preflight failed)\n\n${err.message}\n\n→ The browser sent OPTIONS first to ask permission\n→ Server didn't include the right Allow-Methods/Allow-Headers\n→ Browser CANCELLED the POST — server never received it\n→ This is WHY preflight exists: to prevent dangerous requests!`;
+        result.style.borderLeft = '3px solid #e74c3c';
+      }
+
+      showFlow(flowSteps, flowLog);
+    }
+
+    // Test 4: DELETE
+    async function testDelete() {
+      const result = document.getElementById('result-delete');
+      result.textContent = '⏳ Sending DELETE /api/data/1...';
+
+      const flowSteps = [
+        { label: '🖥️ Browser', type: 'browser' },
+        { label: '✈️ OPTIONS preflight', type: 'preflight' },
+      ];
+      let flowLog = `→ fetch("${API}/api/data/1", { method: 'DELETE' })\n→ DELETE is NEVER a "simple" method\n→ Preflight ALWAYS required for DELETE\n`;
+
+      try {
+        const res = await fetch(API + '/api/data/1', {
+          method: 'DELETE',
+          credentials: 'include',
+        });
+        const data = await res.json();
+
+        flowSteps.push({ label: '✅ Preflight OK', type: 'server' });
+        flowSteps.push({ label: 'DELETE /api/data/1', type: 'browser' });
+        flowSteps.push({ label: '🗑️ Deleted!', type: 'server' });
+        flowLog += `→ Preflight approved!\n→ DELETE sent and item destroyed!`;
+
+        result.textContent = `✅ DELETED!\n\n${JSON.stringify(data, null, 2)}`;
+        result.style.borderLeft = '3px solid #27ae60';
+      } catch (err) {
+        flowSteps.push({ label: '❌ Preflight DENIED', type: 'blocked' });
+        flowLog += `→ Preflight DENIED — DELETE never sent\n→ Data is safe! Preflight prevented the destructive action.`;
+
+        result.textContent = `❌ CORS ERROR (Preflight failed)\n\n${err.message}\n\n→ DELETE requires preflight\n→ Server didn't allow DELETE in Access-Control-Allow-Methods\n→ Browser NEVER sent the DELETE — your data is safe!\n→ Without preflight, the item would have been deleted!`;
+        result.style.borderLeft = '3px solid #e74c3c';
+      }
+
+      showFlow(flowSteps, flowLog);
+    }
+
+    // Test 5: Custom Header
+    async function testCustomHeader() {
+      const result = document.getElementById('result-custom');
+      result.textContent = '⏳ Sending GET /api/public with X-Custom-Header...';
+
+      const flowSteps = [
+        { label: '🖥️ Browser', type: 'browser' },
+        { label: '✈️ OPTIONS (custom header check)', type: 'preflight' },
+      ];
+      let flowLog = `→ fetch with header: X-Custom-Header: test\n→ Custom headers are NOT in the "simple" list\n→ "Simple" headers: Accept, Accept-Language, Content-Language, Content-Type (only form types)\n→ So preflight is triggered!\n`;
+
+      try {
+        const res = await fetch(API + '/api/public', {
+          headers: { 'X-Custom-Header': 'test-value' },
+        });
+        const data = await res.json();
+
+        flowSteps.push({ label: '✅ Allow-Headers approved', type: 'server' });
+        flowSteps.push({ label: 'GET + X-Custom-Header', type: 'browser' });
+        flowSteps.push({ label: '✅ Response', type: 'server' });
+        flowLog += `→ Preflight OK — server allows X-Custom-Header\n→ Actual GET sent with the custom header`;
+
+        result.textContent = `✅ SUCCESS — Custom header allowed!\n\n${JSON.stringify(data, null, 2)}`;
+        result.style.borderLeft = '3px solid #27ae60';
+      } catch (err) {
+        flowSteps.push({ label: '❌ Header not allowed', type: 'blocked' });
+        flowLog += `→ Server didn't include X-Custom-Header in Access-Control-Allow-Headers\n→ Browser refused to send the request`;
+
+        result.textContent = `❌ CORS ERROR (Custom header blocked)\n\n${err.message}\n\n→ X-Custom-Header is not a "simple" header\n→ Server needs: Access-Control-Allow-Headers: X-Custom-Header\n→ Only in Mode 3+ does the server allow custom headers`;
+        result.style.borderLeft = '3px solid #e74c3c';
+      }
+
+      showFlow(flowSteps, flowLog);
+    }
+
+    // Test 6: Read Response Headers
+    async function testReadHeaders() {
+      const result = document.getElementById('result-headers');
+      result.textContent = '⏳ Fetching and trying to read response headers...';
+
+      try {
+        const res = await fetch(API + '/api/public');
+
+        // Try to read various headers
+        const headers = {};
+        const headerNames = ['content-type', 'content-length', 'cache-control', 'x-powered-by', 'etag', 'access-control-allow-origin'];
+
+        headerNames.forEach(name => {
+          const val = res.headers.get(name);
+          headers[name] = val || '(hidden by CORS)';
+        });
+
+        let output = '📋 Response headers readable by JavaScript:\n\n';
+        Object.entries(headers).forEach(([name, value]) => {
+          const hidden = value === '(hidden by CORS)';
+          output += `  ${name}: ${value} ${hidden ? '🔒' : '✅'}\n`;
+        });
+
+        output += '\n📝 By default, only "CORS-safelisted" response headers are readable:\n';
+        output += '   ✅ Cache-Control, Content-Language, Content-Type,\n';
+        output += '      Expires, Last-Modified, Pragma\n';
+        output += '   🔒 Everything else is hidden unless server sends:\n';
+        output += '      Access-Control-Expose-Headers: X-Custom, ETag, ...';
+
+        result.textContent = output;
+        result.style.borderLeft = '3px solid #4a90d9';
+      } catch (err) {
+        result.textContent = `❌ CORS ERROR — can't even make the request\n\n${err.message}`;
+        result.style.borderLeft = '3px solid #e74c3c';
+      }
+
+      showFlow([
+        { label: '🖥️ Browser', type: 'browser' },
+        { label: 'GET /api/public', type: 'browser' },
+        { label: '📋 Read headers', type: 'browser' },
+      ], 'By default, JavaScript can only read "simple" response headers.\nTo expose custom headers, server needs: Access-Control-Expose-Headers');
+    }
+  </script>
+</body>
+</html>
