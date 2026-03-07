@@ -58,6 +58,17 @@ const sessions = {};
 // ============================================================
 // MIDDLEWARE: Check session from cookie
 // ============================================================
+
+// Log every request: show Referer, cookies, and sec-fetch-site
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api') || req.path === '/favicon.ico') return next();
+  console.log(`\n📨 ${req.method} ${req.path}`);
+  console.log(`   Referer:        ${req.headers.referer || '(none)'}`);
+  console.log(`   Sec-Fetch-Site: ${req.headers['sec-fetch-site'] || '(none)'}`);
+  console.log(`   Cookie sent:    ${req.headers.cookie ? 'YES' : 'NO'}`);
+  next();
+});
+
 function getSession(req) {
   // Check for regular session cookie or __Host- prefixed cookie
   const sessionId = req.cookies['session_id'] || req.cookies['__Host-session_id'];
@@ -89,6 +100,13 @@ app.get('/', (req, res) => {
 
 // --- LOGIN PAGE ---
 app.get('/login', (req, res) => {
+  // If already logged in, redirect to dashboard
+  // This proves that after refresh, the cookie IS sent (same-site)
+  const session = getSession(req);
+  if (session) {
+    console.log('🔄 /login — already logged in as', session.username, '→ redirecting to dashboard');
+    return res.redirect('/dashboard');
+  }
   res.render('login', { error: null });
 });
 
